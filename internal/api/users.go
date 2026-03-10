@@ -29,7 +29,7 @@ type UserBot struct {
 	Owner           BotOwner           `json:"owner"`
 	WorkspaceID     string             `json:"workspace_id"`
 	WorkspaceLimits BotWorkspaceLimits `json:"workspace_limits"`
-	WorkspaceName   *string            `json:"workspace_name,omitempty"`
+	WorkspaceName   *string            `json:"workspace_name"`
 }
 
 // User represents a Notion user object.
