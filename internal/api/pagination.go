@@ -34,7 +34,7 @@ func Paginate(ctx context.Context, c *Client, path string, params url.Values, fn
 
 		var pr pageResponse
 		if err := json.Unmarshal(raw, &pr); err != nil {
-			return err
+			return fmt.Errorf("pagination: parse response: %w", err)
 		}
 
 		if !pr.HasMore {

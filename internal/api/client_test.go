@@ -168,6 +168,11 @@ func TestGetContextCancellation(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error after context cancellation, got nil")
 	}
+
+	var connErr *api.ConnectionError
+	if !api.AsConnectionError(err, &connErr) {
+		t.Errorf("expected ConnectionError, got %T: %v", err, err)
+	}
 }
 
 func TestGetTimeout(t *testing.T) {
