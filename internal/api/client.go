@@ -76,7 +76,7 @@ func (c *Client) do(req *http.Request) (json.RawMessage, error) {
 	c.setHeaders(req)
 	resp, err := c.http.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("request: %w", err)
+		return nil, &ConnectionError{cause: err}
 	}
 	defer func() { _ = resp.Body.Close() }()
 

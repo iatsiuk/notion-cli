@@ -24,6 +24,11 @@ func NewCLIError(code int, message string) *CLIError {
 	return &CLIError{Code: code, message: message}
 }
 
+// exitCoder is implemented by errors that carry a CLI exit code.
+type exitCoder interface {
+	ExitCode() int
+}
+
 // ExitCodeFromError returns the exit code for the given error.
 // Returns ExitSuccess for nil, ExitAPI for unknown errors.
 func ExitCodeFromError(err error) int {
@@ -33,6 +38,10 @@ func ExitCodeFromError(err error) int {
 	var cliErr *CLIError
 	if errors.As(err, &cliErr) {
 		return cliErr.Code
+	}
+	var ec exitCoder
+	if errors.As(err, &ec) {
+		return ec.ExitCode()
 	}
 	return ExitAPI
 }
