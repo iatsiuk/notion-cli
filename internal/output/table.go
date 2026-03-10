@@ -6,6 +6,7 @@ import (
 	"io"
 	"sort"
 	"strings"
+	"unicode/utf8"
 )
 
 type tableFormatter struct{}
@@ -25,6 +26,9 @@ func (f *tableFormatter) Format(w io.Writer, data any) error {
 	}
 
 	headers := collectHeaders(rows)
+	if len(headers) == 0 {
+		return nil
+	}
 	widths := computeWidths(headers, rows)
 
 	if err := writeRow(w, headers, widths); err != nil {
@@ -89,11 +93,11 @@ func collectHeaders(rows []map[string]any) []string {
 func computeWidths(headers []string, rows []map[string]any) []int {
 	widths := make([]int, len(headers))
 	for i, h := range headers {
-		widths[i] = len(h)
+		widths[i] = utf8.RuneCountInString(h)
 	}
 	for _, row := range rows {
 		for i, h := range headers {
-			if w := len(cellValue(row[h])); w > widths[i] {
+			if w := utf8.RuneCountInString(cellValue(row[h])); w > widths[i] {
 				widths[i] = w
 			}
 		}
@@ -123,7 +127,7 @@ func writeRow(w io.Writer, cols []string, widths []int) error {
 	var sb strings.Builder
 	for i, col := range cols {
 		sb.WriteString(col)
-		pad := widths[i] - len(col)
+		pad := widths[i] - utf8.RuneCountInString(col)
 		if pad > 0 {
 			sb.WriteString(strings.Repeat(" ", pad))
 		}

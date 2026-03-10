@@ -28,6 +28,18 @@ func TestTableFormatter(t *testing.T) {
 			want:  "",
 		},
 		{
+			name:  "array of empty objects",
+			input: []any{map[string]any{}, map[string]any{}},
+			want:  "",
+		},
+		{
+			name: "utf8 multibyte column name and value",
+			input: map[string]any{
+				"nom": "café",
+			},
+			want: "nom \ncafé\n",
+		},
+		{
 			name: "single object",
 			input: map[string]any{
 				"name": "Alice",
