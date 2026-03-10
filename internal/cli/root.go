@@ -1,6 +1,8 @@
 package cli
 
 import (
+	"errors"
+
 	"github.com/spf13/cobra"
 
 	"notion-cli/internal/config"
@@ -33,7 +35,10 @@ func NewRootCmd() *cobra.Command {
 	cmd.PersistentPreRunE = func(cmd *cobra.Command, args []string) error {
 		loaded, err := config.Load(token, format, quiet, verbose)
 		if err != nil {
-			return NewCLIError(ExitAuth, err.Error())
+			if errors.Is(err, config.ErrNoToken) {
+				return NewCLIError(ExitAuth, err.Error())
+			}
+			return NewCLIError(ExitAPI, err.Error())
 		}
 		cfg = loaded
 		return nil

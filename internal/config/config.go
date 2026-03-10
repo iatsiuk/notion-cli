@@ -15,6 +15,9 @@ type Config struct {
 	Verbose bool
 }
 
+// ErrNoToken is returned when no API token is configured.
+var ErrNoToken = errors.New("no token: set NOTION_TOKEN env var or --token flag")
+
 // Load builds a Config from flag values and environment variables.
 // tokenFlag and formatFlag are the values passed via CLI flags (empty if not set).
 // NOTION_TOKEN env var is used as fallback when tokenFlag is empty.
@@ -25,7 +28,7 @@ func Load(tokenFlag, formatFlag string, quiet, verbose bool) (*Config, error) {
 		token = strings.TrimSpace(tokenFlag)
 	}
 	if token == "" {
-		return nil, errors.New("no token: set NOTION_TOKEN env var or --token flag")
+		return nil, ErrNoToken
 	}
 
 	isTTY := isTerminal()
