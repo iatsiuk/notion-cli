@@ -19,10 +19,17 @@ type BotOwner struct {
 	User      *User  `json:"user,omitempty"`
 }
 
+// BotWorkspaceLimits holds workspace limits for a bot user.
+type BotWorkspaceLimits struct {
+	MaxFileUploadSizeInBytes int `json:"max_file_upload_size_in_bytes"`
+}
+
 // UserBot contains bot-specific user fields.
 type UserBot struct {
-	Owner         BotOwner `json:"owner"`
-	WorkspaceName *string  `json:"workspace_name"`
+	Owner           BotOwner           `json:"owner"`
+	WorkspaceID     string             `json:"workspace_id"`
+	WorkspaceLimits BotWorkspaceLimits `json:"workspace_limits"`
+	WorkspaceName   *string            `json:"workspace_name,omitempty"`
 }
 
 // User represents a Notion user object.

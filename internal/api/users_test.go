@@ -27,6 +27,8 @@ const botUserJSON = `{
 	"avatar_url": null,
 	"bot": {
 		"owner": {"type": "workspace", "workspace": true},
+		"workspace_id": "ws-123",
+		"workspace_limits": {"max_file_upload_size_in_bytes": 5242880},
 		"workspace_name": "My Workspace"
 	}
 }`
@@ -265,6 +267,12 @@ func TestGetUser_BotType(t *testing.T) {
 	}
 	if user.Bot == nil || user.Bot.WorkspaceName == nil || *user.Bot.WorkspaceName != "My Workspace" {
 		t.Errorf("Bot.WorkspaceName unexpected, got %v", user.Bot)
+	}
+	if user.Bot == nil || user.Bot.WorkspaceID != "ws-123" {
+		t.Errorf("Bot.WorkspaceID = %q, want %q", user.Bot.WorkspaceID, "ws-123")
+	}
+	if user.Bot == nil || user.Bot.WorkspaceLimits.MaxFileUploadSizeInBytes != 5242880 {
+		t.Errorf("Bot.WorkspaceLimits.MaxFileUploadSizeInBytes = %d, want %d", user.Bot.WorkspaceLimits.MaxFileUploadSizeInBytes, 5242880)
 	}
 	if user.AvatarURL != nil {
 		t.Errorf("AvatarURL = %v, want nil", *user.AvatarURL)
