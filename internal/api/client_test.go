@@ -183,6 +183,81 @@ func TestGetTimeout(t *testing.T) {
 	}
 }
 
+func TestPatchJSONBody(t *testing.T) {
+	t.Parallel()
+
+	var gotMethod string
+	var gotBody map[string]any
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotMethod = r.Method
+		_ = json.NewDecoder(r.Body).Decode(&gotBody)
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"id":"page-1"}`))
+	}))
+	defer srv.Close()
+
+	client := api.NewClient("token", api.WithBaseURL(srv.URL))
+	body := map[string]any{"archived": true}
+
+	_, err := client.Patch(t.Context(), "/v1/pages/page-1", body)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if gotMethod != http.MethodPatch {
+		t.Errorf("method = %q, want PATCH", gotMethod)
+	}
+	if gotBody["archived"] != true {
+		t.Errorf("body archived = %v, want true", gotBody["archived"])
+	}
+}
+
+func TestPutJSONBody(t *testing.T) {
+	t.Parallel()
+
+	var gotMethod string
+	var gotBody map[string]any
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotMethod = r.Method
+		_ = json.NewDecoder(r.Body).Decode(&gotBody)
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"id":"block-1"}`))
+	}))
+	defer srv.Close()
+
+	client := api.NewClient("token", api.WithBaseURL(srv.URL))
+	body := map[string]any{"children": []any{}}
+
+	_, err := client.Put(t.Context(), "/v1/blocks/block-1/children", body)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if gotMethod != http.MethodPut {
+		t.Errorf("method = %q, want PUT", gotMethod)
+	}
+}
+
+func TestDelete(t *testing.T) {
+	t.Parallel()
+
+	var gotMethod string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotMethod = r.Method
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"archived":true}`))
+	}))
+	defer srv.Close()
+
+	client := api.NewClient("token", api.WithBaseURL(srv.URL))
+
+	_, err := client.Delete(t.Context(), "/v1/blocks/block-1")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if gotMethod != http.MethodDelete {
+		t.Errorf("method = %q, want DELETE", gotMethod)
+	}
+}
+
 // ensure Post sends a nil body as empty JSON object
 func TestPostNilBody(t *testing.T) {
 	t.Parallel()

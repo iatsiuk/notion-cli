@@ -70,13 +70,36 @@ func (c *Client) Get(ctx context.Context, path string, params url.Values) (json.
 // Post sends a POST request to path with body marshalled as JSON.
 // body may be nil to send an empty JSON object.
 func (c *Client) Post(ctx context.Context, path string, body any) (json.RawMessage, error) {
+	return c.sendWithBody(ctx, http.MethodPost, path, body)
+}
+
+// Patch sends a PATCH request to path with body marshalled as JSON.
+func (c *Client) Patch(ctx context.Context, path string, body any) (json.RawMessage, error) {
+	return c.sendWithBody(ctx, http.MethodPatch, path, body)
+}
+
+// Put sends a PUT request to path with body marshalled as JSON.
+func (c *Client) Put(ctx context.Context, path string, body any) (json.RawMessage, error) {
+	return c.sendWithBody(ctx, http.MethodPut, path, body)
+}
+
+// Delete sends a DELETE request to path.
+func (c *Client) Delete(ctx context.Context, path string) (json.RawMessage, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, c.baseURL+path, http.NoBody)
+	if err != nil {
+		return nil, fmt.Errorf("build request: %w", err)
+	}
+	return c.do(req)
+}
+
+func (c *Client) sendWithBody(ctx context.Context, method, path string, body any) (json.RawMessage, error) {
 	var buf bytes.Buffer
 	if body != nil {
 		if err := json.NewEncoder(&buf).Encode(body); err != nil {
 			return nil, fmt.Errorf("encode body: %w", err)
 		}
 	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL+path, &buf)
+	req, err := http.NewRequestWithContext(ctx, method, c.baseURL+path, &buf)
 	if err != nil {
 		return nil, fmt.Errorf("build request: %w", err)
 	}
