@@ -23,53 +23,53 @@
 ## Implementation Steps
 
 ### Task 1: Formatter interface and JSON formatter
-- [ ] write tests in `internal/output/json_test.go`:
+- [x] write tests in `internal/output/json_test.go`:
   - pretty-prints JSON with indentation
   - handles arrays, objects, nested structures
   - handles empty/null values
-- [ ] define Formatter interface in `internal/output/formatter.go`
-- [ ] implement JSON formatter in `internal/output/json.go`
-- [ ] run tests - must pass before next task
+- [x] define Formatter interface in `internal/output/formatter.go`
+- [x] implement JSON formatter in `internal/output/json.go`
+- [x] run tests - must pass before next task
 
 ### Task 2: JSONL formatter
-- [ ] write tests in `internal/output/jsonl_test.go`:
+- [x] write tests in `internal/output/jsonl_test.go`:
   - one compact JSON per line
   - handles arrays (each element on separate line)
   - handles single objects
-- [ ] implement JSONL formatter in `internal/output/jsonl.go`
-- [ ] run tests - must pass before next task
+- [x] implement JSONL formatter in `internal/output/jsonl.go`
+- [x] run tests - must pass before next task
 
 ### Task 3: Raw formatter
-- [ ] write tests in `internal/output/raw_test.go`:
+- [x] write tests in `internal/output/raw_test.go`:
   - strings output unquoted
   - numbers/booleans as compact JSON
   - objects/arrays as compact JSON
-- [ ] implement raw formatter in `internal/output/raw.go`
-- [ ] run tests - must pass before next task
+- [x] implement raw formatter in `internal/output/raw.go`
+- [x] run tests - must pass before next task
 
 ### Task 4: Table formatter
-- [ ] write tests in `internal/output/table_test.go`:
+- [x] write tests in `internal/output/table_test.go`:
   - aligned columns with headers
   - handles variable-width content
   - handles missing/null fields
   - handles empty results
-- [ ] implement table formatter in `internal/output/table.go`
-- [ ] run tests - must pass before next task
+- [x] implement table formatter in `internal/output/table.go`
+- [x] run tests - must pass before next task
 
 ### Task 5: Format auto-detection and factory
-- [ ] write tests in `internal/output/factory_test.go`:
+- [x] write tests in `internal/output/factory_test.go`:
   - returns JSON formatter for TTY
   - returns JSONL formatter for pipe
   - returns correct formatter for explicit format flag
   - error for unknown format
-- [ ] implement formatter factory function
-- [ ] run tests - must pass before next task
+- [x] implement formatter factory function
+- [x] run tests - must pass before next task
 
 ### Task 6: Verify acceptance criteria
-- [ ] verify all four formats produce correct output
-- [ ] verify auto-detection works
-- [ ] run full test suite with `make test`
-- [ ] run linter with `make build` - all issues must be fixed
+- [x] verify all four formats produce correct output
+- [x] verify auto-detection works
+- [x] run full test suite with `make test`
+- [x] run linter with `make build` - all issues must be fixed
 
 ## Technical Details
 - Formatter interface: `Format(w io.Writer, data any) error`
