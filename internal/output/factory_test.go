@@ -21,7 +21,8 @@ func TestNew_explicitFormats(t *testing.T) {
 		{"raw", false},
 		{"table", false},
 		{"unknown", true},
-		{"auto-detect", false}, // empty format falls back to json when not a tty
+		{"auto-detect", false}, // empty format falls back to jsonl when not a tty
+		{"auto", false},        // "auto" string triggers same auto-detection as empty
 	}
 
 	for _, tc := range cases {

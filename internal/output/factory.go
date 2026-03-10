@@ -11,7 +11,7 @@ var ErrUnknownFormat = errors.New("unknown format")
 // New returns a Formatter for the given format name.
 // If format is empty, auto-detection is used: JSON for TTY, JSONL for pipes.
 func New(format string, isTTY bool) (Formatter, error) {
-	if format == "" {
+	if format == "" || format == "auto" {
 		if isTTY {
 			return NewJSONFormatter(), nil
 		}
