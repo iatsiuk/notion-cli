@@ -78,18 +78,15 @@ func runUserList(ctx context.Context, client *api.Client, w io.Writer, format st
 	if err != nil {
 		return fmt.Errorf("output format: %w", err)
 	}
+	all := make([]api.User, 0)
 	err = client.ListUsers(ctx, func(users []api.User) error {
-		for i := range users {
-			if err := f.Format(w, &users[i]); err != nil {
-				return err
-			}
-		}
+		all = append(all, users...)
 		return nil
 	})
 	if err != nil {
 		return mapAPIError(err)
 	}
-	return nil
+	return f.Format(w, all)
 }
 
 // NewUserGetCmd returns the "user get" cobra subcommand.

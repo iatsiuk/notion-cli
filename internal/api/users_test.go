@@ -147,6 +147,9 @@ func TestListUsers_Pagination(t *testing.T) {
 				"next_cursor": "cursor1",
 			}
 		} else {
+			if got := r.URL.Query().Get("start_cursor"); got != "cursor1" {
+				t.Errorf("second request start_cursor = %q, want %q", got, "cursor1")
+			}
 			resp = map[string]any{
 				"object":      "list",
 				"results":     json.RawMessage(`[` + botUserJSON + `]`),

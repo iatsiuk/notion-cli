@@ -63,6 +63,9 @@ type usersResponse struct {
 
 // ListUsers iterates over all workspace users, calling fn for each page.
 func (c *Client) ListUsers(ctx context.Context, fn func([]User) error) error {
+	if fn == nil {
+		return fmt.Errorf("list users: fn must not be nil")
+	}
 	return Paginate(ctx, c, "/v1/users", url.Values{}, func(raw json.RawMessage) error {
 		var resp usersResponse
 		if err := json.Unmarshal(raw, &resp); err != nil {
