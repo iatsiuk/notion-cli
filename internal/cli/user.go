@@ -24,6 +24,7 @@ func NewUserCmd() *cobra.Command {
 		},
 	}
 	cmd.AddCommand(NewUserMeCmd())
+	cmd.AddCommand(NewUserListCmd())
 	return cmd
 }
 
@@ -45,6 +46,41 @@ func NewUserMeCmd() *cobra.Command {
 			return runUserMe(cmd.Context(), client, cmd.OutOrStdout(), cfg.Format)
 		},
 	}
+}
+
+// NewUserListCmd returns the "user list" cobra subcommand.
+func NewUserListCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "list",
+		Short: "List all workspace users",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			client := api.NewClient(cfg.Token,
+				api.WithHTTPClient(&http.Client{Timeout: 30 * time.Second}),
+			)
+			if cfg.Verbose {
+				client = api.NewClient(cfg.Token,
+					api.WithHTTPClient(&http.Client{Timeout: 30 * time.Second}),
+					api.WithVerbose(os.Stderr),
+				)
+			}
+			return runUserList(cmd.Context(), client, cmd.OutOrStdout(), cfg.Format)
+		},
+	}
+}
+
+func runUserList(ctx context.Context, client *api.Client, w io.Writer, format string) error {
+	f, err := output.New(format, false)
+	if err != nil {
+		return fmt.Errorf("output format: %w", err)
+	}
+	return client.ListUsers(ctx, func(users []api.User) error {
+		for i := range users {
+			if err := f.Format(w, &users[i]); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
 }
 
 func runUserMe(ctx context.Context, client *api.Client, w io.Writer, format string) error {
