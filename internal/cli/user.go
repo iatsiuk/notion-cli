@@ -29,22 +29,22 @@ func NewUserCmd() *cobra.Command {
 	return cmd
 }
 
+// newClientFromCfg builds an API client from the global config.
+func newClientFromCfg() *api.Client {
+	opts := []api.Option{api.WithHTTPClient(&http.Client{Timeout: 30 * time.Second})}
+	if cfg.Verbose {
+		opts = append(opts, api.WithVerbose(os.Stderr))
+	}
+	return api.NewClient(cfg.Token, opts...)
+}
+
 // NewUserMeCmd returns the "user me" cobra subcommand.
 func NewUserMeCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "me",
 		Short: "Get the currently authenticated user",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			client := api.NewClient(cfg.Token,
-				api.WithHTTPClient(&http.Client{Timeout: 30 * time.Second}),
-			)
-			if cfg.Verbose {
-				client = api.NewClient(cfg.Token,
-					api.WithHTTPClient(&http.Client{Timeout: 30 * time.Second}),
-					api.WithVerbose(os.Stderr),
-				)
-			}
-			return runUserMe(cmd.Context(), client, cmd.OutOrStdout(), cfg.Format)
+			return runUserMe(cmd.Context(), newClientFromCfg(), cmd.OutOrStdout(), cfg.Format)
 		},
 	}
 }
@@ -55,16 +55,7 @@ func NewUserListCmd() *cobra.Command {
 		Use:   "list",
 		Short: "List all workspace users",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			client := api.NewClient(cfg.Token,
-				api.WithHTTPClient(&http.Client{Timeout: 30 * time.Second}),
-			)
-			if cfg.Verbose {
-				client = api.NewClient(cfg.Token,
-					api.WithHTTPClient(&http.Client{Timeout: 30 * time.Second}),
-					api.WithVerbose(os.Stderr),
-				)
-			}
-			return runUserList(cmd.Context(), client, cmd.OutOrStdout(), cfg.Format)
+			return runUserList(cmd.Context(), newClientFromCfg(), cmd.OutOrStdout(), cfg.Format)
 		},
 	}
 }
@@ -74,7 +65,7 @@ func runUserList(ctx context.Context, client *api.Client, w io.Writer, format st
 	if err != nil {
 		return fmt.Errorf("output format: %w", err)
 	}
-	return client.ListUsers(ctx, func(users []api.User) error {
+	err = client.ListUsers(ctx, func(users []api.User) error {
 		for i := range users {
 			if err := f.Format(w, &users[i]); err != nil {
 				return err
@@ -82,6 +73,10 @@ func runUserList(ctx context.Context, client *api.Client, w io.Writer, format st
 		}
 		return nil
 	})
+	if err != nil {
+		return mapAPIError(err)
+	}
+	return nil
 }
 
 // NewUserGetCmd returns the "user get" cobra subcommand.
@@ -91,16 +86,7 @@ func NewUserGetCmd() *cobra.Command {
 		Short: "Get a workspace user by ID",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			client := api.NewClient(cfg.Token,
-				api.WithHTTPClient(&http.Client{Timeout: 30 * time.Second}),
-			)
-			if cfg.Verbose {
-				client = api.NewClient(cfg.Token,
-					api.WithHTTPClient(&http.Client{Timeout: 30 * time.Second}),
-					api.WithVerbose(os.Stderr),
-				)
-			}
-			return runUserGet(cmd.Context(), client, cmd.OutOrStdout(), cfg.Format, args[0])
+			return runUserGet(cmd.Context(), newClientFromCfg(), cmd.OutOrStdout(), cfg.Format, args[0])
 		},
 	}
 }

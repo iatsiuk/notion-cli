@@ -76,6 +76,10 @@ func TestRunUserMe_AuthError(t *testing.T) {
 func TestRunUserMe_JSONLFormat(t *testing.T) {
 	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v1/users/me" {
+			http.Error(w, "not found", http.StatusNotFound)
+			return
+		}
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = w.Write([]byte(testUserJSON))
 	}))
@@ -93,6 +97,12 @@ func TestRunUserMe_JSONLFormat(t *testing.T) {
 	var obj map[string]any
 	if err := json.Unmarshal([]byte(line), &obj); err != nil {
 		t.Fatalf("jsonl output is not valid JSON: %v, got: %s", err, line)
+	}
+	if obj["id"] != "user-1" {
+		t.Errorf("id = %v, want %q", obj["id"], "user-1")
+	}
+	if obj["name"] != "Alice" {
+		t.Errorf("name = %v, want %q", obj["name"], "Alice")
 	}
 }
 
@@ -164,6 +174,30 @@ func TestRunUserList_Pagination(t *testing.T) {
 	}
 	if !strings.Contains(out, "user-2") {
 		t.Errorf("output missing user-2, got: %s", out)
+	}
+}
+
+func TestRunUserList_AuthError(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusUnauthorized)
+		_, _ = w.Write([]byte(`{"status":401,"code":"unauthorized","message":"API token is invalid."}`))
+	}))
+	defer srv.Close()
+
+	client := api.NewClient("bad-token", api.WithBaseURL(srv.URL), api.WithHTTPClient(srv.Client()))
+	var buf bytes.Buffer
+	err := runUserList(context.Background(), client, &buf, "json")
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+
+	var cliErr *CLIError
+	if !errors.As(err, &cliErr) {
+		t.Fatalf("expected CLIError, got %T: %v", err, err)
+	}
+	if cliErr.Code != ExitAuth {
+		t.Errorf("expected exit code %d, got %d", ExitAuth, cliErr.Code)
 	}
 }
 
