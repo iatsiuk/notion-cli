@@ -25,6 +25,7 @@ func NewUserCmd() *cobra.Command {
 	}
 	cmd.AddCommand(NewUserMeCmd())
 	cmd.AddCommand(NewUserListCmd())
+	cmd.AddCommand(NewUserGetCmd())
 	return cmd
 }
 
@@ -81,6 +82,40 @@ func runUserList(ctx context.Context, client *api.Client, w io.Writer, format st
 		}
 		return nil
 	})
+}
+
+// NewUserGetCmd returns the "user get" cobra subcommand.
+func NewUserGetCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "get <user_id>",
+		Short: "Get a workspace user by ID",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			client := api.NewClient(cfg.Token,
+				api.WithHTTPClient(&http.Client{Timeout: 30 * time.Second}),
+			)
+			if cfg.Verbose {
+				client = api.NewClient(cfg.Token,
+					api.WithHTTPClient(&http.Client{Timeout: 30 * time.Second}),
+					api.WithVerbose(os.Stderr),
+				)
+			}
+			return runUserGet(cmd.Context(), client, cmd.OutOrStdout(), cfg.Format, args[0])
+		},
+	}
+}
+
+func runUserGet(ctx context.Context, client *api.Client, w io.Writer, format, userID string) error {
+	user, err := client.GetUser(ctx, userID)
+	if err != nil {
+		return mapAPIError(err)
+	}
+
+	f, err := output.New(format, false)
+	if err != nil {
+		return fmt.Errorf("output format: %w", err)
+	}
+	return f.Format(w, user)
 }
 
 func runUserMe(ctx context.Context, client *api.Client, w io.Writer, format string) error {
