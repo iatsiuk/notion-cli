@@ -66,10 +66,10 @@
 - [x] run tests - must pass before next task
 
 ### Task 6: Verify acceptance criteria
-- [ ] verify all four formats produce correct output
-- [ ] verify auto-detection works
-- [ ] run full test suite with `make test`
-- [ ] run linter with `make build` - all issues must be fixed
+- [x] verify all four formats produce correct output
+- [x] verify auto-detection works
+- [x] run full test suite with `make test`
+- [x] run linter with `make build` - all issues must be fixed
 
 ## Technical Details
 - Formatter interface: `Format(w io.Writer, data any) error`
