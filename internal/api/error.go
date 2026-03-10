@@ -25,9 +25,9 @@ func (e *APIError) Error() string {
 }
 
 // ExitCode returns the CLI exit code for this error.
-// 401 maps to ExitAuth; all other API errors map to ExitAPI.
+// 401 and 403 map to ExitAuth; all other API errors map to ExitAPI.
 func (e *APIError) ExitCode() int {
-	if e.Status == 401 {
+	if e.Status == 401 || e.Status == 403 {
 		return exitAuth
 	}
 	return exitAPI
