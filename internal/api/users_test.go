@@ -262,7 +262,7 @@ func TestGetUser_BotType(t *testing.T) {
 	if user.Type != "bot" {
 		t.Errorf("Type = %q, want %q", user.Type, "bot")
 	}
-	if user.Bot == nil || user.Bot.WorkspaceName != "My Workspace" {
+	if user.Bot == nil || user.Bot.WorkspaceName == nil || *user.Bot.WorkspaceName != "My Workspace" {
 		t.Errorf("Bot.WorkspaceName unexpected, got %v", user.Bot)
 	}
 	if user.AvatarURL != nil {

@@ -14,13 +14,15 @@ type UserPerson struct {
 
 // BotOwner contains the owner info for a bot user.
 type BotOwner struct {
-	Type string `json:"type"`
+	Type      string `json:"type"`
+	Workspace bool   `json:"workspace,omitempty"`
+	User      *User  `json:"user,omitempty"`
 }
 
 // UserBot contains bot-specific user fields.
 type UserBot struct {
 	Owner         BotOwner `json:"owner"`
-	WorkspaceName string   `json:"workspace_name"`
+	WorkspaceName *string  `json:"workspace_name"`
 }
 
 // User represents a Notion user object.
@@ -29,7 +31,7 @@ type User struct {
 	Object    string      `json:"object"`
 	Type      string      `json:"type"`
 	Name      string      `json:"name"`
-	AvatarURL *string     `json:"avatar_url,omitempty"`
+	AvatarURL *string     `json:"avatar_url"`
 	Person    *UserPerson `json:"person,omitempty"`
 	Bot       *UserBot    `json:"bot,omitempty"`
 }

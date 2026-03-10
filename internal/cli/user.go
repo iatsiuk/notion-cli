@@ -14,6 +14,19 @@ import (
 	"notion-cli/internal/output"
 )
 
+// isTerminal reports whether w is a character device (TTY).
+func isTerminal(w io.Writer) bool {
+	f, ok := w.(*os.File)
+	if !ok {
+		return false
+	}
+	fi, err := f.Stat()
+	if err != nil {
+		return false
+	}
+	return fi.Mode()&os.ModeCharDevice != 0
+}
+
 // NewUserCmd returns the parent "user" cobra command with subcommands.
 func NewUserCmd() *cobra.Command {
 	cmd := &cobra.Command{
@@ -61,7 +74,7 @@ func NewUserListCmd() *cobra.Command {
 }
 
 func runUserList(ctx context.Context, client *api.Client, w io.Writer, format string) error {
-	f, err := output.New(format, false)
+	f, err := output.New(format, isTerminal(w))
 	if err != nil {
 		return fmt.Errorf("output format: %w", err)
 	}
@@ -97,7 +110,7 @@ func runUserGet(ctx context.Context, client *api.Client, w io.Writer, format, us
 		return mapAPIError(err)
 	}
 
-	f, err := output.New(format, false)
+	f, err := output.New(format, isTerminal(w))
 	if err != nil {
 		return fmt.Errorf("output format: %w", err)
 	}
@@ -110,7 +123,7 @@ func runUserMe(ctx context.Context, client *api.Client, w io.Writer, format stri
 		return mapAPIError(err)
 	}
 
-	f, err := output.New(format, false)
+	f, err := output.New(format, isTerminal(w))
 	if err != nil {
 		return fmt.Errorf("output format: %w", err)
 	}
