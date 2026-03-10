@@ -36,9 +36,12 @@ func WithBaseURL(u string) Option {
 }
 
 // WithHTTPClient sets a custom http.Client.
+// Passing nil is a no-op; the default client is preserved.
 func WithHTTPClient(h *http.Client) Option {
 	return func(c *Client) {
-		c.http = h
+		if h != nil {
+			c.http = h
+		}
 	}
 }
 
@@ -136,7 +139,7 @@ func (c *Client) do(req *http.Request) (json.RawMessage, error) {
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, fmt.Errorf("read body: %w", err)
+		return nil, &ConnectionError{cause: fmt.Errorf("read body: %w", err)}
 	}
 
 	if c.verbose != nil {

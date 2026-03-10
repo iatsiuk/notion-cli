@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/url"
 )
 
@@ -36,8 +37,11 @@ func Paginate(ctx context.Context, c *Client, path string, params url.Values, fn
 			return err
 		}
 
-		if !pr.HasMore || pr.NextCursor == nil {
+		if !pr.HasMore {
 			return nil
+		}
+		if pr.NextCursor == nil {
+			return fmt.Errorf("pagination: has_more is true but next_cursor is nil")
 		}
 
 		p.Set("start_cursor", *pr.NextCursor)

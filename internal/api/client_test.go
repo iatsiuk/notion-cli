@@ -16,9 +16,14 @@ import (
 func TestClientHeaders(t *testing.T) {
 	t.Parallel()
 
-	var gotReq *http.Request
+	type capture struct{ auth, version, ct string }
+	ch := make(chan capture, 1)
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		gotReq = r
+		ch <- capture{
+			r.Header.Get("Authorization"),
+			r.Header.Get("Notion-Version"),
+			r.Header.Get("Content-Type"),
+		}
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte(`{}`))
 	}))
@@ -31,23 +36,24 @@ func TestClientHeaders(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if got := gotReq.Header.Get("Authorization"); got != "Bearer secret-token" {
-		t.Errorf("Authorization = %q, want %q", got, "Bearer secret-token")
+	got := <-ch
+	if got.auth != "Bearer secret-token" {
+		t.Errorf("Authorization = %q, want %q", got.auth, "Bearer secret-token")
 	}
-	if got := gotReq.Header.Get("Notion-Version"); got != api.NotionVersion {
-		t.Errorf("Notion-Version = %q, want %q", got, api.NotionVersion)
+	if got.version != api.NotionVersion {
+		t.Errorf("Notion-Version = %q, want %q", got.version, api.NotionVersion)
 	}
-	if got := gotReq.Header.Get("Content-Type"); got != "application/json" {
-		t.Errorf("Content-Type = %q, want %q", got, "application/json")
+	if got.ct != "application/json" {
+		t.Errorf("Content-Type = %q, want %q", got.ct, "application/json")
 	}
 }
 
 func TestClientBaseURL(t *testing.T) {
 	t.Parallel()
 
-	var gotPath string
+	pathCh := make(chan string, 1)
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		gotPath = r.URL.Path
+		pathCh <- r.URL.Path
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte(`{}`))
 	}))
@@ -60,7 +66,7 @@ func TestClientBaseURL(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if gotPath != "/v1/pages/abc" {
+	if gotPath := <-pathCh; gotPath != "/v1/pages/abc" {
 		t.Errorf("path = %q, want %q", gotPath, "/v1/pages/abc")
 	}
 }
@@ -68,9 +74,9 @@ func TestClientBaseURL(t *testing.T) {
 func TestGetQueryParams(t *testing.T) {
 	t.Parallel()
 
-	var gotQuery url.Values
+	queryCh := make(chan url.Values, 1)
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		gotQuery = r.URL.Query()
+		queryCh <- r.URL.Query()
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte(`{}`))
 	}))
@@ -84,6 +90,7 @@ func TestGetQueryParams(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
+	gotQuery := <-queryCh
 	if got := gotQuery.Get("page_size"); got != "10" {
 		t.Errorf("page_size = %q, want %q", got, "10")
 	}
@@ -95,14 +102,18 @@ func TestGetQueryParams(t *testing.T) {
 func TestPostJSONBody(t *testing.T) {
 	t.Parallel()
 
-	var gotBody map[string]any
-	var gotMethod string
+	type capture struct {
+		method string
+		body   map[string]any
+	}
+	ch := make(chan capture, 1)
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		gotMethod = r.Method
-		if err := json.NewDecoder(r.Body).Decode(&gotBody); err != nil {
+		var body map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
+		ch <- capture{r.Method, body}
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte(`{"id":"page-1"}`))
 	}))
@@ -116,11 +127,12 @@ func TestPostJSONBody(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if gotMethod != http.MethodPost {
-		t.Errorf("method = %q, want POST", gotMethod)
+	got := <-ch
+	if got.method != http.MethodPost {
+		t.Errorf("method = %q, want POST", got.method)
 	}
-	if gotBody["title"] != "My Page" {
-		t.Errorf("body title = %v, want %q", gotBody["title"], "My Page")
+	if got.body["title"] != "My Page" {
+		t.Errorf("body title = %v, want %q", got.body["title"], "My Page")
 	}
 
 	var result map[string]string
@@ -186,14 +198,18 @@ func TestGetTimeout(t *testing.T) {
 func TestPatchJSONBody(t *testing.T) {
 	t.Parallel()
 
-	var gotMethod string
-	var gotBody map[string]any
+	type capture struct {
+		method string
+		body   map[string]any
+	}
+	ch := make(chan capture, 1)
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		gotMethod = r.Method
-		if err := json.NewDecoder(r.Body).Decode(&gotBody); err != nil {
+		var body map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
+		ch <- capture{r.Method, body}
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte(`{"id":"page-1"}`))
 	}))
@@ -206,25 +222,30 @@ func TestPatchJSONBody(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if gotMethod != http.MethodPatch {
-		t.Errorf("method = %q, want PATCH", gotMethod)
+	got := <-ch
+	if got.method != http.MethodPatch {
+		t.Errorf("method = %q, want PATCH", got.method)
 	}
-	if gotBody["archived"] != true {
-		t.Errorf("body archived = %v, want true", gotBody["archived"])
+	if got.body["archived"] != true {
+		t.Errorf("body archived = %v, want true", got.body["archived"])
 	}
 }
 
 func TestPutJSONBody(t *testing.T) {
 	t.Parallel()
 
-	var gotMethod string
-	var gotBody map[string]any
+	type capture struct {
+		method string
+		body   map[string]any
+	}
+	ch := make(chan capture, 1)
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		gotMethod = r.Method
-		if err := json.NewDecoder(r.Body).Decode(&gotBody); err != nil {
+		var body map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
+		ch <- capture{r.Method, body}
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte(`{"id":"block-1"}`))
 	}))
@@ -237,20 +258,21 @@ func TestPutJSONBody(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if gotMethod != http.MethodPut {
-		t.Errorf("method = %q, want PUT", gotMethod)
+	got := <-ch
+	if got.method != http.MethodPut {
+		t.Errorf("method = %q, want PUT", got.method)
 	}
-	if _, ok := gotBody["children"]; !ok {
-		t.Errorf("body missing children field, got %v", gotBody)
+	if _, ok := got.body["children"]; !ok {
+		t.Errorf("body missing children field, got %v", got.body)
 	}
 }
 
 func TestDelete(t *testing.T) {
 	t.Parallel()
 
-	var gotMethod string
+	methodCh := make(chan string, 1)
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		gotMethod = r.Method
+		methodCh <- r.Method
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte(`{"archived":true}`))
 	}))
@@ -262,8 +284,8 @@ func TestDelete(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if gotMethod != http.MethodDelete {
-		t.Errorf("method = %q, want DELETE", gotMethod)
+	if got := <-methodCh; got != http.MethodDelete {
+		t.Errorf("method = %q, want DELETE", got)
 	}
 }
 
@@ -343,9 +365,11 @@ func TestVerboseLoggingPost(t *testing.T) {
 func TestPostNilBody(t *testing.T) {
 	t.Parallel()
 
-	var gotBody bytes.Buffer
+	bodyCh := make(chan []byte, 1)
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		_, _ = gotBody.ReadFrom(r.Body)
+		var buf bytes.Buffer
+		_, _ = buf.ReadFrom(r.Body)
+		bodyCh <- buf.Bytes()
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte(`{}`))
 	}))
@@ -357,7 +381,7 @@ func TestPostNilBody(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if gotBody.Len() != 0 {
-		t.Errorf("expected empty body, got %q", gotBody.String())
+	if got := <-bodyCh; len(got) != 0 {
+		t.Errorf("expected empty body, got %q", string(got))
 	}
 }
