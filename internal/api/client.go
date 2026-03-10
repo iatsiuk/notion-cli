@@ -8,7 +8,6 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"os"
 	"time"
 )
 
@@ -44,11 +43,8 @@ func WithHTTPClient(h *http.Client) Option {
 }
 
 // WithVerbose enables request/response logging to w.
-// Pass os.Stderr for production use.
+// Pass os.Stderr for production use. Nil disables logging (same as omitting).
 func WithVerbose(w io.Writer) Option {
-	if w == nil {
-		w = os.Stderr
-	}
 	return func(c *Client) {
 		c.verbose = w
 	}
@@ -82,7 +78,7 @@ func (c *Client) Get(ctx context.Context, path string, params url.Values) (json.
 }
 
 // Post sends a POST request to path with body marshalled as JSON.
-// body may be nil to send an empty JSON object.
+// body may be nil to send an empty body.
 func (c *Client) Post(ctx context.Context, path string, body any) (json.RawMessage, error) {
 	return c.sendWithBody(ctx, http.MethodPost, path, body)
 }
@@ -136,14 +132,14 @@ func (c *Client) do(req *http.Request) (json.RawMessage, error) {
 	}
 	defer func() { _ = resp.Body.Close() }()
 
-	if c.verbose != nil {
-		_, _ = fmt.Fprintf(c.verbose, "%s %s -> %d (%s)\n",
-			req.Method, req.URL, resp.StatusCode, time.Since(start))
-	}
-
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, fmt.Errorf("read body: %w", err)
+	}
+
+	if c.verbose != nil {
+		_, _ = fmt.Fprintf(c.verbose, "%s %s -> %d (%s)\n",
+			req.Method, req.URL, resp.StatusCode, time.Since(start))
 	}
 
 	if resp.StatusCode >= 400 {

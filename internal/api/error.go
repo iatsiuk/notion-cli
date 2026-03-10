@@ -59,10 +59,11 @@ func AsConnectionError(err error, target **ConnectionError) bool {
 }
 
 // parseAPIError parses a Notion API error response body.
+// Always returns *APIError, even when the body is not valid JSON.
 func parseAPIError(status int, body []byte) error {
 	var apiErr APIError
 	if err := json.Unmarshal(body, &apiErr); err != nil {
-		return fmt.Errorf("notion api error %d: %s", status, string(body))
+		return &APIError{Status: status, Message: string(body)}
 	}
 	apiErr.Status = status
 	return &apiErr

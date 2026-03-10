@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"sync/atomic"
 	"testing"
 )
 
@@ -39,11 +40,11 @@ func TestPaginate_SinglePage(t *testing.T) {
 
 func TestPaginate_MultiplePages(t *testing.T) {
 	t.Parallel()
-	call := 0
+	var call atomic.Int32
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		call++
+		n := call.Add(1)
 		var resp map[string]any
-		if call == 1 {
+		if n == 1 {
 			// first page - verify no start_cursor
 			if r.URL.Query().Get("start_cursor") != "" {
 				http.Error(w, "unexpected cursor", http.StatusBadRequest)
@@ -113,10 +114,9 @@ func TestPaginate_EmptyResults(t *testing.T) {
 
 func TestPaginate_ErrorMidPagination(t *testing.T) {
 	t.Parallel()
-	call := 0
+	var call atomic.Int32
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		call++
-		if call == 1 {
+		if call.Add(1) == 1 {
 			resp := map[string]any{
 				"results":     []any{"a"},
 				"has_more":    true,

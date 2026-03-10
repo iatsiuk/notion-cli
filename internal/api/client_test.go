@@ -190,7 +190,10 @@ func TestPatchJSONBody(t *testing.T) {
 	var gotBody map[string]any
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		gotMethod = r.Method
-		_ = json.NewDecoder(r.Body).Decode(&gotBody)
+		if err := json.NewDecoder(r.Body).Decode(&gotBody); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte(`{"id":"page-1"}`))
 	}))
@@ -218,7 +221,10 @@ func TestPutJSONBody(t *testing.T) {
 	var gotBody map[string]any
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		gotMethod = r.Method
-		_ = json.NewDecoder(r.Body).Decode(&gotBody)
+		if err := json.NewDecoder(r.Body).Decode(&gotBody); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte(`{"id":"block-1"}`))
 	}))
@@ -233,6 +239,9 @@ func TestPutJSONBody(t *testing.T) {
 	}
 	if gotMethod != http.MethodPut {
 		t.Errorf("method = %q, want PUT", gotMethod)
+	}
+	if _, ok := gotBody["children"]; !ok {
+		t.Errorf("body missing children field, got %v", gotBody)
 	}
 }
 
@@ -296,19 +305,24 @@ func TestVerboseLoggingQuietMode(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	// no WithVerbose - logging should be suppressed
+	// client without verbose - buffer must stay empty
 	var buf bytes.Buffer
-	client := api.NewClient("token", api.WithBaseURL(srv.URL))
-	_ = client
+	client := api.NewClient("token", api.WithBaseURL(srv.URL), api.WithVerbose(&buf))
 
-	// use a separate client without verbose to confirm no output
-	client2 := api.NewClient("token", api.WithBaseURL(srv.URL))
-	_, err := client2.Get(t.Context(), "/v1/pages", nil)
+	// make a request with verbose enabled, then verify a separate quiet client writes nothing more
+	_, err := client.Get(t.Context(), "/v1/pages", nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if buf.Len() != 0 {
-		t.Errorf("expected no log output in quiet mode, got %q", buf.String())
+	n := buf.Len()
+
+	quietClient := api.NewClient("token", api.WithBaseURL(srv.URL))
+	_, err = quietClient.Get(t.Context(), "/v1/pages", nil)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if buf.Len() != n {
+		t.Errorf("quiet client wrote to verbose buffer: %q", buf.String()[n:])
 	}
 }
 
@@ -338,7 +352,7 @@ func TestVerboseLoggingPost(t *testing.T) {
 	}
 }
 
-// ensure Post sends a nil body as empty JSON object
+// ensure Post with nil body sends an empty body (0 bytes)
 func TestPostNilBody(t *testing.T) {
 	t.Parallel()
 
@@ -355,5 +369,8 @@ func TestPostNilBody(t *testing.T) {
 	_, err := client.Post(t.Context(), "/v1/pages", nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
+	}
+	if gotBody.Len() != 0 {
+		t.Errorf("expected empty body, got %q", gotBody.String())
 	}
 }
