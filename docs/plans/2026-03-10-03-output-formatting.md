@@ -48,13 +48,13 @@
 - [x] run tests - must pass before next task
 
 ### Task 4: Table formatter
-- [ ] write tests in `internal/output/table_test.go`:
+- [x] write tests in `internal/output/table_test.go`:
   - aligned columns with headers
   - handles variable-width content
   - handles missing/null fields
   - handles empty results
-- [ ] implement table formatter in `internal/output/table.go`
-- [ ] run tests - must pass before next task
+- [x] implement table formatter in `internal/output/table.go`
+- [x] run tests - must pass before next task
 
 ### Task 5: Format auto-detection and factory
 - [ ] write tests in `internal/output/factory_test.go`:
