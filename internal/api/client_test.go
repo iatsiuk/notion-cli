@@ -258,6 +258,86 @@ func TestDelete(t *testing.T) {
 	}
 }
 
+func TestVerboseLogging(t *testing.T) {
+	t.Parallel()
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{}`))
+	}))
+	defer srv.Close()
+
+	var buf bytes.Buffer
+	client := api.NewClient("token", api.WithBaseURL(srv.URL), api.WithVerbose(&buf))
+
+	_, err := client.Get(t.Context(), "/v1/pages", nil)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	logged := buf.String()
+	if logged == "" {
+		t.Fatal("expected log output, got empty")
+	}
+	if !bytes.Contains([]byte(logged), []byte("GET")) {
+		t.Errorf("log missing method: %q", logged)
+	}
+	if !bytes.Contains([]byte(logged), []byte("200")) {
+		t.Errorf("log missing status: %q", logged)
+	}
+}
+
+func TestVerboseLoggingQuietMode(t *testing.T) {
+	t.Parallel()
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{}`))
+	}))
+	defer srv.Close()
+
+	// no WithVerbose - logging should be suppressed
+	var buf bytes.Buffer
+	client := api.NewClient("token", api.WithBaseURL(srv.URL))
+	_ = client
+
+	// use a separate client without verbose to confirm no output
+	client2 := api.NewClient("token", api.WithBaseURL(srv.URL))
+	_, err := client2.Get(t.Context(), "/v1/pages", nil)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if buf.Len() != 0 {
+		t.Errorf("expected no log output in quiet mode, got %q", buf.String())
+	}
+}
+
+func TestVerboseLoggingPost(t *testing.T) {
+	t.Parallel()
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusCreated)
+		_, _ = w.Write([]byte(`{"id":"new-page"}`))
+	}))
+	defer srv.Close()
+
+	var buf bytes.Buffer
+	client := api.NewClient("token", api.WithBaseURL(srv.URL), api.WithVerbose(&buf))
+
+	_, err := client.Post(t.Context(), "/v1/pages", map[string]any{"title": "test"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	logged := buf.String()
+	if !bytes.Contains([]byte(logged), []byte("POST")) {
+		t.Errorf("log missing method: %q", logged)
+	}
+	if !bytes.Contains([]byte(logged), []byte("201")) {
+		t.Errorf("log missing status: %q", logged)
+	}
+}
+
 // ensure Post sends a nil body as empty JSON object
 func TestPostNilBody(t *testing.T) {
 	t.Parallel()

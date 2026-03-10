@@ -8,6 +8,8 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"os"
+	"time"
 )
 
 const (
@@ -21,6 +23,7 @@ type Client struct {
 	token   string
 	baseURL string
 	http    *http.Client
+	verbose io.Writer // nil means quiet mode
 }
 
 // Option configures a Client.
@@ -37,6 +40,17 @@ func WithBaseURL(u string) Option {
 func WithHTTPClient(h *http.Client) Option {
 	return func(c *Client) {
 		c.http = h
+	}
+}
+
+// WithVerbose enables request/response logging to w.
+// Pass os.Stderr for production use.
+func WithVerbose(w io.Writer) Option {
+	if w == nil {
+		w = os.Stderr
+	}
+	return func(c *Client) {
+		c.verbose = w
 	}
 }
 
@@ -114,11 +128,18 @@ func (c *Client) setHeaders(req *http.Request) {
 
 func (c *Client) do(req *http.Request) (json.RawMessage, error) {
 	c.setHeaders(req)
+
+	start := time.Now()
 	resp, err := c.http.Do(req)
 	if err != nil {
 		return nil, &ConnectionError{cause: err}
 	}
 	defer func() { _ = resp.Body.Close() }()
+
+	if c.verbose != nil {
+		_, _ = fmt.Fprintf(c.verbose, "%s %s -> %d (%s)\n",
+			req.Method, req.URL, resp.StatusCode, time.Since(start))
+	}
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
