@@ -57,13 +57,13 @@
 - [x] run tests - must pass before next task
 
 ### Task 5: Format auto-detection and factory
-- [ ] write tests in `internal/output/factory_test.go`:
+- [x] write tests in `internal/output/factory_test.go`:
   - returns JSON formatter for TTY
   - returns JSONL formatter for pipe
   - returns correct formatter for explicit format flag
   - error for unknown format
-- [ ] implement formatter factory function
-- [ ] run tests - must pass before next task
+- [x] implement formatter factory function
+- [x] run tests - must pass before next task
 
 ### Task 6: Verify acceptance criteria
 - [ ] verify all four formats produce correct output
