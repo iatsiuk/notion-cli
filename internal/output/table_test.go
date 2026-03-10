@@ -86,3 +86,33 @@ func TestTableFormatter(t *testing.T) {
 		})
 	}
 }
+
+func TestTableFormatter_errors(t *testing.T) {
+	t.Parallel()
+
+	f := output.NewTableFormatter()
+
+	errCases := []struct {
+		name  string
+		input any
+	}{
+		{
+			name:  "array with non-object element",
+			input: []any{"not an object"},
+		},
+		{
+			name:  "unsupported scalar type",
+			input: 42,
+		},
+	}
+
+	for _, tt := range errCases {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			var buf bytes.Buffer
+			if err := f.Format(&buf, tt.input); err == nil {
+				t.Fatal("expected error, got nil")
+			}
+		})
+	}
+}

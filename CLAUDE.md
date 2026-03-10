@@ -5,6 +5,7 @@
 - `cmd/notion-cli` - CLI entry point
 - `internal/api` - Notion API HTTP client, error types, pagination helper
 - `internal/cli` - CLI commands and exit code handling
+- `internal/output` - output formatters (json, jsonl, raw, table) and formatter factory; use `output.New(format, isTTY)` - caller determines TTY; default: json on TTY, jsonl on pipe
 - `internal/` - internal packages
 
 ## Code Style

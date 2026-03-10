@@ -1,6 +1,7 @@
 package output
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"sort"
@@ -50,6 +51,10 @@ func toRows(data any) ([]map[string]any, error) {
 	case []any:
 		rows := make([]map[string]any, 0, len(v))
 		for _, item := range v {
+			if item == nil {
+				rows = append(rows, map[string]any{})
+				continue
+			}
 			m, ok := item.(map[string]any)
 			if !ok {
 				return nil, fmt.Errorf("table format: expected object, got %T", item)
@@ -97,9 +102,18 @@ func computeWidths(headers []string, rows []map[string]any) []int {
 }
 
 // cellValue converts a cell value to its string representation.
+// Maps and slices are serialized as compact JSON.
 func cellValue(v any) string {
 	if v == nil {
 		return ""
+	}
+	switch v.(type) {
+	case map[string]any, []any:
+		b, err := json.Marshal(v)
+		if err != nil {
+			return fmt.Sprintf("%v", v)
+		}
+		return string(b)
 	}
 	return fmt.Sprintf("%v", v)
 }
