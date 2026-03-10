@@ -30,7 +30,7 @@ type User struct {
 	ID        string      `json:"id"`
 	Object    string      `json:"object"`
 	Type      string      `json:"type"`
-	Name      string      `json:"name"`
+	Name      *string     `json:"name"`
 	AvatarURL *string     `json:"avatar_url"`
 	Person    *UserPerson `json:"person,omitempty"`
 	Bot       *UserBot    `json:"bot,omitempty"`

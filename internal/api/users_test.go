@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"sync/atomic"
 	"testing"
 
 	"notion-cli/internal/api"
@@ -59,8 +60,8 @@ func TestGetMe(t *testing.T) {
 	if user.Type != "person" {
 		t.Errorf("Type = %q, want %q", user.Type, "person")
 	}
-	if user.Name != "Alice" {
-		t.Errorf("Name = %q, want %q", user.Name, "Alice")
+	if user.Name == nil || *user.Name != "Alice" {
+		t.Errorf("Name = %v, want %q", user.Name, "Alice")
 	}
 	if user.Person == nil || user.Person.Email != "alice@example.com" {
 		t.Errorf("Person.Email = unexpected value, got %v", user.Person)
@@ -132,11 +133,11 @@ func TestListUsers(t *testing.T) {
 func TestListUsers_Pagination(t *testing.T) {
 	t.Parallel()
 
-	call := 0
+	var call int32
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		call++
+		c := atomic.AddInt32(&call, 1)
 		var resp map[string]any
-		if call == 1 {
+		if c == 1 {
 			resp = map[string]any{
 				"object":      "list",
 				"results":     json.RawMessage(`[` + userJSON + `]`),
@@ -215,8 +216,8 @@ func TestGetUser(t *testing.T) {
 	if user.ID != "user-1" {
 		t.Errorf("ID = %q, want %q", user.ID, "user-1")
 	}
-	if user.Name != "Alice" {
-		t.Errorf("Name = %q, want %q", user.Name, "Alice")
+	if user.Name == nil || *user.Name != "Alice" {
+		t.Errorf("Name = %v, want %q", user.Name, "Alice")
 	}
 }
 

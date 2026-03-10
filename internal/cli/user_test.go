@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync/atomic"
 	"testing"
 
 	"notion-cli/internal/api"
@@ -149,11 +150,11 @@ func TestRunUserList_OutputsUsers(t *testing.T) {
 
 func TestRunUserList_Pagination(t *testing.T) {
 	t.Parallel()
-	page := 0
+	var page int32
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		page++
-		if page == 1 {
+		p := atomic.AddInt32(&page, 1)
+		if p == 1 {
 			_, _ = w.Write([]byte(`{"object":"list","results":[{"object":"user","id":"user-1","type":"person","name":"Alice"}],"next_cursor":"cursor-2","has_more":true}`))
 		} else {
 			_, _ = w.Write([]byte(`{"object":"list","results":[{"object":"user","id":"user-2","type":"person","name":"Bob"}],"next_cursor":null,"has_more":false}`))
