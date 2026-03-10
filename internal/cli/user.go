@@ -121,11 +121,7 @@ func runUserMe(ctx context.Context, client *api.Client, w io.Writer, format stri
 func mapAPIError(err error) error {
 	var apiErr *api.APIError
 	if api.AsAPIError(err, &apiErr) {
-		code := ExitAPI
-		if apiErr.Status == 401 || apiErr.Status == 403 {
-			code = ExitAuth
-		}
-		return NewCLIError(code, apiErr.Error())
+		return NewCLIError(apiErr.ExitCode(), apiErr.Error())
 	}
 	var connErr *api.ConnectionError
 	if api.AsConnectionError(err, &connErr) {

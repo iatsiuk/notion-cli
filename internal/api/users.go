@@ -65,7 +65,7 @@ func (c *Client) ListUsers(ctx context.Context, fn func([]User) error) error {
 
 // GetUser returns a specific user by ID.
 func (c *Client) GetUser(ctx context.Context, userID string) (*User, error) {
-	raw, err := c.Get(ctx, "/v1/users/"+userID, nil)
+	raw, err := c.Get(ctx, "/v1/users/"+url.PathEscape(userID), nil)
 	if err != nil {
 		return nil, err
 	}
