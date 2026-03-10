@@ -45,7 +45,9 @@ func runStatus(ctx context.Context, c *config.Config, baseURL string, client *ht
 
 	switch resp.StatusCode {
 	case http.StatusOK:
-		fmt.Println("ok")
+		if !c.Quiet {
+			fmt.Println("ok")
+		}
 		return nil
 	case http.StatusUnauthorized, http.StatusForbidden:
 		return NewCLIError(ExitAuth, fmt.Sprintf("auth error: HTTP %d", resp.StatusCode))
