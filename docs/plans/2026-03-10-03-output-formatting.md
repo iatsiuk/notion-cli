@@ -32,12 +32,12 @@
 - [x] run tests - must pass before next task
 
 ### Task 2: JSONL formatter
-- [ ] write tests in `internal/output/jsonl_test.go`:
+- [x] write tests in `internal/output/jsonl_test.go`:
   - one compact JSON per line
   - handles arrays (each element on separate line)
   - handles single objects
-- [ ] implement JSONL formatter in `internal/output/jsonl.go`
-- [ ] run tests - must pass before next task
+- [x] implement JSONL formatter in `internal/output/jsonl.go`
+- [x] run tests - must pass before next task
 
 ### Task 3: Raw formatter
 - [ ] write tests in `internal/output/raw_test.go`:
