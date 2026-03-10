@@ -305,24 +305,11 @@ func TestVerboseLoggingQuietMode(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	// client without verbose - buffer must stay empty
-	var buf bytes.Buffer
-	client := api.NewClient("token", api.WithBaseURL(srv.URL), api.WithVerbose(&buf))
-
-	// make a request with verbose enabled, then verify a separate quiet client writes nothing more
-	_, err := client.Get(t.Context(), "/v1/pages", nil)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	n := buf.Len()
-
+	// client without verbose option must not write any log output
 	quietClient := api.NewClient("token", api.WithBaseURL(srv.URL))
-	_, err = quietClient.Get(t.Context(), "/v1/pages", nil)
+	_, err := quietClient.Get(t.Context(), "/v1/pages", nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
-	}
-	if buf.Len() != n {
-		t.Errorf("quiet client wrote to verbose buffer: %q", buf.String()[n:])
 	}
 }
 

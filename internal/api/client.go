@@ -103,13 +103,15 @@ func (c *Client) Delete(ctx context.Context, path string) (json.RawMessage, erro
 }
 
 func (c *Client) sendWithBody(ctx context.Context, method, path string, body any) (json.RawMessage, error) {
-	var buf bytes.Buffer
+	var r io.Reader = http.NoBody
 	if body != nil {
+		var buf bytes.Buffer
 		if err := json.NewEncoder(&buf).Encode(body); err != nil {
 			return nil, fmt.Errorf("encode body: %w", err)
 		}
+		r = &buf
 	}
-	req, err := http.NewRequestWithContext(ctx, method, c.baseURL+path, &buf)
+	req, err := http.NewRequestWithContext(ctx, method, c.baseURL+path, r)
 	if err != nil {
 		return nil, fmt.Errorf("build request: %w", err)
 	}
