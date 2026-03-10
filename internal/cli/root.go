@@ -48,6 +48,8 @@ func NewRootCmd() *cobra.Command {
 		return nil
 	}
 
+	cmd.AddCommand(NewStatusCmd())
+
 	return cmd
 }
 
