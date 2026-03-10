@@ -1,6 +1,7 @@
 package api
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -60,6 +61,22 @@ func (c *Client) Get(ctx context.Context, path string, params url.Values) (json.
 		u += "?" + params.Encode()
 	}
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u, http.NoBody)
+	if err != nil {
+		return nil, fmt.Errorf("build request: %w", err)
+	}
+	return c.do(req)
+}
+
+// Post sends a POST request to path with body marshalled as JSON.
+// body may be nil to send an empty JSON object.
+func (c *Client) Post(ctx context.Context, path string, body any) (json.RawMessage, error) {
+	var buf bytes.Buffer
+	if body != nil {
+		if err := json.NewEncoder(&buf).Encode(body); err != nil {
+			return nil, fmt.Errorf("encode body: %w", err)
+		}
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL+path, &buf)
 	if err != nil {
 		return nil, fmt.Errorf("build request: %w", err)
 	}

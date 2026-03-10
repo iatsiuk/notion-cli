@@ -53,6 +53,11 @@ func AsAPIError(err error, target **APIError) bool {
 	return errors.As(err, target)
 }
 
+// AsConnectionError reports whether any error in err's chain is *ConnectionError.
+func AsConnectionError(err error, target **ConnectionError) bool {
+	return errors.As(err, target)
+}
+
 // parseAPIError parses a Notion API error response body.
 func parseAPIError(status int, body []byte) error {
 	var apiErr APIError
