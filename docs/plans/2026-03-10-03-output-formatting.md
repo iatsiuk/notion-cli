@@ -23,13 +23,13 @@
 ## Implementation Steps
 
 ### Task 1: Formatter interface and JSON formatter
-- [ ] write tests in `internal/output/json_test.go`:
+- [x] write tests in `internal/output/json_test.go`:
   - pretty-prints JSON with indentation
   - handles arrays, objects, nested structures
   - handles empty/null values
-- [ ] define Formatter interface in `internal/output/formatter.go`
-- [ ] implement JSON formatter in `internal/output/json.go`
-- [ ] run tests - must pass before next task
+- [x] define Formatter interface in `internal/output/formatter.go`
+- [x] implement JSON formatter in `internal/output/json.go`
+- [x] run tests - must pass before next task
 
 ### Task 2: JSONL formatter
 - [ ] write tests in `internal/output/jsonl_test.go`:
