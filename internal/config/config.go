@@ -2,7 +2,9 @@ package config
 
 import (
 	"errors"
+	"fmt"
 	"os"
+	"strings"
 )
 
 // Config holds the resolved CLI configuration.
@@ -18,9 +20,9 @@ type Config struct {
 // NOTION_TOKEN env var is used as fallback when tokenFlag is empty.
 // Format "auto" or "" resolves to "json" for TTY, "jsonl" for non-TTY.
 func Load(tokenFlag, formatFlag string, quiet, verbose bool) (*Config, error) {
-	token := os.Getenv("NOTION_TOKEN")
+	token := strings.TrimSpace(os.Getenv("NOTION_TOKEN"))
 	if tokenFlag != "" {
-		token = tokenFlag
+		token = strings.TrimSpace(tokenFlag)
 	}
 	if token == "" {
 		return nil, errors.New("no token: set NOTION_TOKEN env var or --token flag")
@@ -28,23 +30,33 @@ func Load(tokenFlag, formatFlag string, quiet, verbose bool) (*Config, error) {
 
 	isTTY := isTerminal()
 
+	format, err := resolveFormat(formatFlag, isTTY)
+	if err != nil {
+		return nil, err
+	}
+
 	return &Config{
 		Token:   token,
-		Format:  resolveFormat(formatFlag, isTTY),
+		Format:  format,
 		Quiet:   quiet,
 		Verbose: verbose,
 	}, nil
 }
 
+var validFormats = map[string]bool{"json": true, "jsonl": true, "raw": true, "table": true}
+
 // resolveFormat returns the output format based on flag value and terminal detection.
-func resolveFormat(flagVal string, isTTY bool) string {
-	if flagVal != "" && flagVal != "auto" {
-		return flagVal
+func resolveFormat(flagVal string, isTTY bool) (string, error) {
+	if flagVal == "" || flagVal == "auto" {
+		if isTTY {
+			return "json", nil
+		}
+		return "jsonl", nil
 	}
-	if isTTY {
-		return "json"
+	if !validFormats[flagVal] {
+		return "", fmt.Errorf("invalid format %q: must be one of json, jsonl, raw, table, auto", flagVal)
 	}
-	return "jsonl"
+	return flagVal, nil
 }
 
 // isTerminal reports whether os.Stdout is connected to a terminal.

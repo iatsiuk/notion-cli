@@ -77,7 +77,10 @@ func TestResolveFormat_TTY(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.flag, func(t *testing.T) {
 			t.Parallel()
-			got := resolveFormat(tc.flag, true)
+			got, err := resolveFormat(tc.flag, true)
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
 			if got != tc.want {
 				t.Errorf("resolveFormat(%q, tty=true) = %q, want %q", tc.flag, got, tc.want)
 			}
@@ -98,7 +101,10 @@ func TestResolveFormat_Pipe(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.flag, func(t *testing.T) {
 			t.Parallel()
-			got := resolveFormat(tc.flag, false)
+			got, err := resolveFormat(tc.flag, false)
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
 			if got != tc.want {
 				t.Errorf("resolveFormat(%q, tty=false) = %q, want %q", tc.flag, got, tc.want)
 			}
@@ -122,9 +128,29 @@ func TestResolveFormat_FlagOverride(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.flag, func(t *testing.T) {
 			t.Parallel()
-			got := resolveFormat(tc.flag, tc.isTTY)
+			got, err := resolveFormat(tc.flag, tc.isTTY)
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
 			if got != tc.want {
 				t.Errorf("resolveFormat(%q, tty=%v) = %q, want %q", tc.flag, tc.isTTY, got, tc.want)
+			}
+		})
+	}
+}
+
+func TestResolveFormat_InvalidFormat(t *testing.T) {
+	t.Parallel()
+
+	for _, flag := range []string{"foobar", "xml", ""} {
+		if flag == "" {
+			continue // empty is valid (auto)
+		}
+		t.Run(flag, func(t *testing.T) {
+			t.Parallel()
+			_, err := resolveFormat(flag, true)
+			if err == nil {
+				t.Errorf("expected error for invalid format %q", flag)
 			}
 		})
 	}

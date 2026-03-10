@@ -3,6 +3,7 @@ package cli
 import (
 	"context"
 	"fmt"
+	"io"
 	"net/http"
 
 	"github.com/spf13/cobra"
@@ -37,7 +38,10 @@ func runStatus(ctx context.Context, c *config.Config, baseURL string, client *ht
 	if err != nil {
 		return NewCLIError(ExitConnection, fmt.Sprintf("connection error: %v", err))
 	}
-	defer func() { _ = resp.Body.Close() }()
+	defer func() {
+		_, _ = io.Copy(io.Discard, resp.Body)
+		_ = resp.Body.Close()
+	}()
 
 	switch resp.StatusCode {
 	case http.StatusOK:
