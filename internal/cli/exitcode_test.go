@@ -6,6 +6,7 @@ import (
 )
 
 func TestExitCodeConstants(t *testing.T) {
+	t.Parallel()
 	if ExitSuccess != 0 {
 		t.Errorf("ExitSuccess = %d, want 0", ExitSuccess)
 	}

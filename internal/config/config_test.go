@@ -75,10 +75,13 @@ func TestResolveFormat_TTY(t *testing.T) {
 		{"auto", "json"},
 	}
 	for _, tc := range cases {
-		got := resolveFormat(tc.flag, true)
-		if got != tc.want {
-			t.Errorf("resolveFormat(%q, tty=true) = %q, want %q", tc.flag, got, tc.want)
-		}
+		t.Run(tc.flag, func(t *testing.T) {
+			t.Parallel()
+			got := resolveFormat(tc.flag, true)
+			if got != tc.want {
+				t.Errorf("resolveFormat(%q, tty=true) = %q, want %q", tc.flag, got, tc.want)
+			}
+		})
 	}
 }
 
@@ -93,10 +96,13 @@ func TestResolveFormat_Pipe(t *testing.T) {
 		{"auto", "jsonl"},
 	}
 	for _, tc := range cases {
-		got := resolveFormat(tc.flag, false)
-		if got != tc.want {
-			t.Errorf("resolveFormat(%q, tty=false) = %q, want %q", tc.flag, got, tc.want)
-		}
+		t.Run(tc.flag, func(t *testing.T) {
+			t.Parallel()
+			got := resolveFormat(tc.flag, false)
+			if got != tc.want {
+				t.Errorf("resolveFormat(%q, tty=false) = %q, want %q", tc.flag, got, tc.want)
+			}
+		})
 	}
 }
 
@@ -114,9 +120,12 @@ func TestResolveFormat_FlagOverride(t *testing.T) {
 		{"json", false, "json"},
 	}
 	for _, tc := range cases {
-		got := resolveFormat(tc.flag, tc.isTTY)
-		if got != tc.want {
-			t.Errorf("resolveFormat(%q, tty=%v) = %q, want %q", tc.flag, tc.isTTY, got, tc.want)
-		}
+		t.Run(tc.flag, func(t *testing.T) {
+			t.Parallel()
+			got := resolveFormat(tc.flag, tc.isTTY)
+			if got != tc.want {
+				t.Errorf("resolveFormat(%q, tty=%v) = %q, want %q", tc.flag, tc.isTTY, got, tc.want)
+			}
+		})
 	}
 }

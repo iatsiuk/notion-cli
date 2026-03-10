@@ -9,19 +9,10 @@ import (
 // cfg holds the loaded config after PersistentPreRunE runs.
 var cfg *config.Config
 
-// Config returns the loaded configuration. Valid only after PersistentPreRunE.
-func Config() *config.Config { return cfg }
-
-type rootFlags struct {
-	token   string
-	format  string
-	quiet   bool
-	verbose bool
-}
-
 // NewRootCmd returns the root cobra command with global flags registered.
 func NewRootCmd() *cobra.Command {
-	f := &rootFlags{}
+	var token, format string
+	var quiet, verbose bool
 
 	cmd := &cobra.Command{
 		Use:           "notion-cli",
@@ -34,15 +25,15 @@ func NewRootCmd() *cobra.Command {
 	}
 
 	p := cmd.PersistentFlags()
-	p.StringVar(&f.token, "token", "", "Notion API token (overrides NOTION_TOKEN env var)")
-	p.StringVar(&f.format, "format", "auto", "Output format: json|jsonl|raw|table|auto")
-	p.BoolVar(&f.quiet, "quiet", false, "Suppress non-essential output")
-	p.BoolVar(&f.verbose, "verbose", false, "Enable verbose output")
+	p.StringVarP(&token, "token", "t", "", "Notion API token (overrides NOTION_TOKEN env var)")
+	p.StringVarP(&format, "format", "f", "auto", "Output format: json|jsonl|raw|table|auto")
+	p.BoolVar(&quiet, "quiet", false, "Suppress non-essential output")
+	p.BoolVar(&verbose, "verbose", false, "Enable verbose output")
 
 	cmd.PersistentPreRunE = func(cmd *cobra.Command, args []string) error {
-		loaded, err := config.Load(f.token, f.format, f.quiet, f.verbose)
+		loaded, err := config.Load(token, format, quiet, verbose)
 		if err != nil {
-			return err
+			return NewCLIError(ExitAuth, err.Error())
 		}
 		cfg = loaded
 		return nil
@@ -51,11 +42,4 @@ func NewRootCmd() *cobra.Command {
 	cmd.AddCommand(NewStatusCmd())
 
 	return cmd
-}
-
-// ExecuteRootForTest executes cmd and returns the loaded config. For use in tests only.
-func ExecuteRootForTest(cmd *cobra.Command) (*config.Config, error) {
-	cfg = nil
-	err := cmd.Execute()
-	return cfg, err
 }
