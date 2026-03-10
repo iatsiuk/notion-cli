@@ -3,6 +3,8 @@
 ## Package Structure
 
 - `cmd/notion-cli` - CLI entry point
+- `internal/api` - Notion API HTTP client, error types, pagination helper
+- `internal/cli` - CLI commands and exit code handling
 - `internal/` - internal packages
 
 ## Code Style
