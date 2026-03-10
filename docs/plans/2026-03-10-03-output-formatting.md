@@ -40,12 +40,12 @@
 - [x] run tests - must pass before next task
 
 ### Task 3: Raw formatter
-- [ ] write tests in `internal/output/raw_test.go`:
+- [x] write tests in `internal/output/raw_test.go`:
   - strings output unquoted
   - numbers/booleans as compact JSON
   - objects/arrays as compact JSON
-- [ ] implement raw formatter in `internal/output/raw.go`
-- [ ] run tests - must pass before next task
+- [x] implement raw formatter in `internal/output/raw.go`
+- [x] run tests - must pass before next task
 
 ### Task 4: Table formatter
 - [ ] write tests in `internal/output/table_test.go`:
