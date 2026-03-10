@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"time"
 
 	"github.com/spf13/cobra"
 
@@ -20,7 +21,8 @@ func NewStatusCmd() *cobra.Command {
 		Use:   "status",
 		Short: "Check connectivity to the Notion API",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return runStatus(cmd.Context(), cfg, notionAPIBase, http.DefaultClient)
+			httpClient := &http.Client{Timeout: 10 * time.Second}
+			return runStatus(cmd.Context(), cfg, notionAPIBase, httpClient)
 		},
 	}
 }

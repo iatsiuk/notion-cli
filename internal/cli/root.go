@@ -36,6 +36,10 @@ func NewRootCmd() *cobra.Command {
 		loaded, err := config.Load(token, format, quiet, verbose)
 		if err != nil {
 			if errors.Is(err, config.ErrNoToken) {
+				// root command without a subcommand shows help; don't require auth
+				if !cmd.HasParent() {
+					return nil
+				}
 				return NewCLIError(ExitAuth, err.Error())
 			}
 			return NewCLIError(ExitAPI, err.Error())

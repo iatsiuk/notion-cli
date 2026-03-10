@@ -1,7 +1,6 @@
 package cli_test
 
 import (
-	"errors"
 	"testing"
 
 	"notion-cli/internal/cli"
@@ -49,22 +48,15 @@ func TestNewRootCmd_TokenFromEnv(t *testing.T) {
 	}
 }
 
-func TestNewRootCmd_NoTokenReturnsError(t *testing.T) {
+func TestNewRootCmd_NoTokenShowsHelpWithoutError(t *testing.T) {
 	t.Setenv("NOTION_TOKEN", "")
 
 	cmd := cli.NewRootCmd()
 	cmd.SetArgs([]string{})
 
 	_, err := cli.ExecuteRootForTest(cmd)
-	if err == nil {
-		t.Fatal("expected error when no token provided")
-	}
-	var cliErr *cli.CLIError
-	if !errors.As(err, &cliErr) {
-		t.Fatalf("expected CLIError, got %T", err)
-	}
-	if cliErr.Code != cli.ExitAuth {
-		t.Errorf("expected exit code %d, got %d", cli.ExitAuth, cliErr.Code)
+	if err != nil {
+		t.Fatalf("expected no error for bare root command without token, got: %v", err)
 	}
 }
 
