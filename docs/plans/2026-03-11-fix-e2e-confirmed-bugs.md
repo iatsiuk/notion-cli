@@ -44,11 +44,11 @@ Fix 3 confirmed bugs from e2e testing (`e2e-errors.md`):
 ## Implementation Steps
 
 ### Task 1: Table format -- write failing tests for struct types
-- [ ] add test case `TestTableFormat_APIUser` -- pass `*api.User` struct, expect formatted table output (not error)
-- [ ] add test case `TestTableFormat_APIUserSlice` -- pass `[]api.User`, expect multi-row table
-- [ ] add test case `TestTableFormat_APIDatabase` -- pass `*api.Database`, expect formatted table
-- [ ] add test case `TestTableFormat_NilAndEmpty` -- pass nil and empty slice, expect no error
-- [ ] run tests -- confirm they FAIL with "unsupported type" error
+- [x] add test case `TestTableFormat_APIUser` -- pass `*api.User` struct, expect formatted table output (not error)
+- [x] add test case `TestTableFormat_APIUserSlice` -- pass `[]api.User`, expect multi-row table
+- [x] add test case `TestTableFormat_APIDatabase` -- pass `*api.Database`, expect formatted table
+- [x] add test case `TestTableFormat_NilAndEmpty` -- pass nil and empty slice, expect no error
+- [x] run tests -- confirm they FAIL with "unsupported type" error
 
 ### Task 2: Table format -- fix toRows() to handle arbitrary structs
 - [ ] in `toRows()` (`internal/output/table.go:49-64`), add conversion path: marshal struct to JSON, then unmarshal to `map[string]any` (reuse json round-trip pattern from jsonl.go reflect approach)
