@@ -11,6 +11,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"testing"
 
 	"notion-cli/internal/api"
@@ -129,52 +131,6 @@ func TestRunFileGet_NotFound(t *testing.T) {
 	client := api.NewClient("token", api.WithBaseURL(srv.URL), api.WithHTTPClient(srv.Client()))
 	var buf bytes.Buffer
 	err := runFileGet(context.Background(), client, &buf, "json", "bad-id")
-	if err == nil {
-		t.Fatal("expected error, got nil")
-	}
-	var cliErr *CLIError
-	if !errors.As(err, &cliErr) {
-		t.Fatalf("expected CLIError, got %T: %v", err, err)
-	}
-	if cliErr.Code != ExitAPI {
-		t.Errorf("expected exit code %d, got %d", ExitAPI, cliErr.Code)
-	}
-}
-
-func TestRunFileDelete_OutputsFileUpload(t *testing.T) {
-	t.Parallel()
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/v1/file_uploads/fu-1" || r.Method != http.MethodDelete {
-			http.Error(w, "not found", http.StatusNotFound)
-			return
-		}
-		w.Header().Set("Content-Type", "application/json")
-		_, _ = w.Write([]byte(testFileUploadJSON))
-	}))
-	defer srv.Close()
-
-	client := api.NewClient("token", api.WithBaseURL(srv.URL), api.WithHTTPClient(srv.Client()))
-	var buf bytes.Buffer
-	err := runFileDelete(context.Background(), client, &buf, "json", "fu-1")
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if !strings.Contains(buf.String(), "fu-1") {
-		t.Errorf("output missing file upload ID, got: %s", buf.String())
-	}
-}
-
-func TestRunFileDelete_NotFound(t *testing.T) {
-	t.Parallel()
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusNotFound)
-		_, _ = w.Write([]byte(`{"status":404,"code":"object_not_found","message":"not found"}`))
-	}))
-	defer srv.Close()
-
-	client := api.NewClient("token", api.WithBaseURL(srv.URL), api.WithHTTPClient(srv.Client()))
-	var buf bytes.Buffer
-	err := runFileDelete(context.Background(), client, &buf, "json", "bad-id")
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}
@@ -325,7 +281,7 @@ func TestNewFileCmd_HasSubcommands(t *testing.T) {
 	for _, sub := range cmd.Commands() {
 		names[sub.Name()] = true
 	}
-	for _, want := range []string{"create", "get", "delete", "send", "complete", "upload"} {
+	for _, want := range []string{"create", "get", "send", "complete", "upload"} {
 		if !names[want] {
 			t.Errorf("missing subcommand %q", want)
 		}
@@ -335,16 +291,6 @@ func TestNewFileCmd_HasSubcommands(t *testing.T) {
 func TestNewFileGetCmd_MissingArgument(t *testing.T) {
 	t.Parallel()
 	cmd := NewFileGetCmd()
-	cmd.SetArgs([]string{})
-	err := cmd.Execute()
-	if err == nil {
-		t.Fatal("expected error for missing argument, got nil")
-	}
-}
-
-func TestNewFileDeleteCmd_MissingArgument(t *testing.T) {
-	t.Parallel()
-	cmd := NewFileDeleteCmd()
 	cmd.SetArgs([]string{})
 	err := cmd.Execute()
 	if err == nil {
@@ -365,8 +311,11 @@ func TestNewFileCompleteCmd_MissingArgument(t *testing.T) {
 func TestRunFileUpload_ChainsCreateSendComplete(t *testing.T) {
 	t.Parallel()
 	var calls []string
+	var mu sync.Mutex
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
 		calls = append(calls, r.Method+":"+r.URL.Path)
+		mu.Unlock()
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = w.Write([]byte(testFileUploadJSON))
 	}))
@@ -387,17 +336,21 @@ func TestRunFileUpload_ChainsCreateSendComplete(t *testing.T) {
 	if !strings.Contains(buf.String(), "fu-1") {
 		t.Errorf("output missing file upload ID, got: %s", buf.String())
 	}
-	if len(calls) != 3 {
-		t.Errorf("expected 3 API calls, got %d: %v", len(calls), calls)
+	mu.Lock()
+	gotCalls := make([]string, len(calls))
+	copy(gotCalls, calls)
+	mu.Unlock()
+	if len(gotCalls) != 3 {
+		t.Errorf("expected 3 API calls, got %d: %v", len(gotCalls), gotCalls)
 	}
-	if calls[0] != "POST:/v1/file_uploads" {
-		t.Errorf("first call = %q, want POST:/v1/file_uploads", calls[0])
+	if gotCalls[0] != "POST:/v1/file_uploads" {
+		t.Errorf("first call = %q, want POST:/v1/file_uploads", gotCalls[0])
 	}
-	if calls[1] != "POST:/v1/file_uploads/fu-1/send" {
-		t.Errorf("second call = %q, want POST:/v1/file_uploads/fu-1/send", calls[1])
+	if gotCalls[1] != "POST:/v1/file_uploads/fu-1/send" {
+		t.Errorf("second call = %q, want POST:/v1/file_uploads/fu-1/send", gotCalls[1])
 	}
-	if calls[2] != "POST:/v1/file_uploads/fu-1/complete" {
-		t.Errorf("third call = %q, want POST:/v1/file_uploads/fu-1/complete", calls[2])
+	if gotCalls[2] != "POST:/v1/file_uploads/fu-1/complete" {
+		t.Errorf("third call = %q, want POST:/v1/file_uploads/fu-1/complete", gotCalls[2])
 	}
 }
 
@@ -442,10 +395,9 @@ func TestRunFileUpload_CreateError(t *testing.T) {
 
 func TestRunFileUpload_SendError(t *testing.T) {
 	t.Parallel()
-	callCount := 0
+	var callCount atomic.Int32
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		callCount++
-		if callCount == 1 {
+		if callCount.Add(1) == 1 {
 			w.Header().Set("Content-Type", "application/json")
 			_, _ = w.Write([]byte(testFileUploadJSON))
 			return

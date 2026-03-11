@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"mime"
 	"mime/multipart"
 	"net/http"
 	"net/textproto"
@@ -27,20 +28,21 @@ type FileUploadParts struct {
 
 // FileUpload represents a Notion file upload object.
 type FileUpload struct {
-	Object         string              `json:"object"`
-	ID             string              `json:"id"`
-	CreatedTime    string              `json:"created_time"`
-	CreatedBy      FileUploadCreatedBy `json:"created_by"`
-	LastEditedTime string              `json:"last_edited_time"`
-	InTrash        bool                `json:"in_trash"`
-	ExpiryTime     *string             `json:"expiry_time"`
-	Status         string              `json:"status"`
-	Filename       *string             `json:"filename"`
-	ContentType    *string             `json:"content_type"`
-	ContentLength  *int64              `json:"content_length"`
-	UploadURL      string              `json:"upload_url"`
-	CompleteURL    string              `json:"complete_url"`
-	NumberOfParts  FileUploadParts     `json:"number_of_parts"`
+	Object           string              `json:"object"`
+	ID               string              `json:"id"`
+	CreatedTime      string              `json:"created_time"`
+	CreatedBy        FileUploadCreatedBy `json:"created_by"`
+	LastEditedTime   string              `json:"last_edited_time"`
+	InTrash          bool                `json:"in_trash"`
+	ExpiryTime       *string             `json:"expiry_time"`
+	Status           string              `json:"status"`
+	Filename         *string             `json:"filename"`
+	ContentType      *string             `json:"content_type"`
+	ContentLength    *int64              `json:"content_length"`
+	UploadURL        string              `json:"upload_url"`
+	CompleteURL      string              `json:"complete_url"`
+	NumberOfParts    FileUploadParts     `json:"number_of_parts"`
+	FileImportResult json.RawMessage     `json:"file_import_result,omitempty"`
 }
 
 // CreateFileUploadParams holds optional parameters for initiating a file upload.
@@ -65,19 +67,6 @@ func (c *Client) GetFileUpload(ctx context.Context, fileUploadID string) (*FileU
 	return &fu, nil
 }
 
-// DeleteFileUpload deletes a file upload by ID (DELETE /v1/file_uploads/{id}).
-func (c *Client) DeleteFileUpload(ctx context.Context, fileUploadID string) (*FileUpload, error) {
-	raw, err := c.Delete(ctx, "/v1/file_uploads/"+url.PathEscape(fileUploadID))
-	if err != nil {
-		return nil, err
-	}
-	var fu FileUpload
-	if err := json.Unmarshal(raw, &fu); err != nil {
-		return nil, fmt.Errorf("decode file upload: %w", err)
-	}
-	return &fu, nil
-}
-
 // SendFileContent uploads file content via multipart/form-data (POST /v1/file_uploads/{id}/send).
 // partNumber is optional; pass 0 to omit it (used for single-part uploads).
 func (c *Client) SendFileContent(ctx context.Context, fileUploadID, filename, contentType string, content io.Reader, partNumber int) (*FileUpload, error) {
@@ -85,7 +74,7 @@ func (c *Client) SendFileContent(ctx context.Context, fileUploadID, filename, co
 	mw := multipart.NewWriter(&buf)
 
 	h := make(textproto.MIMEHeader)
-	h.Set("Content-Disposition", fmt.Sprintf(`form-data; name="file"; filename=%q`, filename))
+	h.Set("Content-Disposition", mime.FormatMediaType("form-data", map[string]string{"name": "file", "filename": filename}))
 	h.Set("Content-Type", contentType)
 	part, err := mw.CreatePart(h)
 	if err != nil {

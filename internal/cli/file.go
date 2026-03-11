@@ -25,7 +25,6 @@ func NewFileCmd() *cobra.Command {
 	}
 	cmd.AddCommand(NewFileCreateCmd())
 	cmd.AddCommand(NewFileGetCmd())
-	cmd.AddCommand(NewFileDeleteCmd())
 	cmd.AddCommand(NewFileSendCmd())
 	cmd.AddCommand(NewFileCompleteCmd())
 	cmd.AddCommand(NewFileUploadCmd())
@@ -79,30 +78,6 @@ func NewFileGetCmd() *cobra.Command {
 
 func runFileGet(ctx context.Context, client *api.Client, w io.Writer, format, fileUploadID string) error {
 	fu, err := client.GetFileUpload(ctx, fileUploadID)
-	if err != nil {
-		return mapAPIError(err)
-	}
-	f, err := output.New(format, isTerminal(w))
-	if err != nil {
-		return fmt.Errorf("output format: %w", err)
-	}
-	return f.Format(w, fu)
-}
-
-// NewFileDeleteCmd returns the "file delete" cobra subcommand.
-func NewFileDeleteCmd() *cobra.Command {
-	return &cobra.Command{
-		Use:   "delete <file_upload_id>",
-		Short: "Delete a file upload by ID",
-		Args:  cobra.ExactArgs(1),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			return runFileDelete(cmd.Context(), newClientFromCfg(), cmd.OutOrStdout(), cfg.Format, args[0])
-		},
-	}
-}
-
-func runFileDelete(ctx context.Context, client *api.Client, w io.Writer, format, fileUploadID string) error {
-	fu, err := client.DeleteFileUpload(ctx, fileUploadID)
 	if err != nil {
 		return mapAPIError(err)
 	}
