@@ -426,3 +426,78 @@ notion-cli user get <user_id>
 ```
 notion-cli user get abc123
 ```
+
+## File Upload Commands
+
+### file create
+
+Initiate a new file upload. Returns a file upload object with an ID used in subsequent steps.
+
+```
+notion-cli file create [flags]
+
+Flags:
+    --filename string          Filename for the upload
+    --content-type string      MIME content type
+    --mode string              Upload mode (e.g. multi for multipart)
+    --number-of-parts int      Number of parts for multipart upload
+```
+
+```
+notion-cli file create --filename report.pdf --content-type application/pdf
+notion-cli file create --filename video.mp4 --mode multi --number-of-parts 3
+```
+
+### file get
+
+Get a file upload object by ID.
+
+```
+notion-cli file get <file_upload_id>
+```
+
+```
+notion-cli file get abc123
+```
+
+### file send
+
+Upload file content to an existing file upload.
+
+```
+notion-cli file send <file_upload_id> <file_path> [flags]
+
+Flags:
+    --content-type string   MIME content type (auto-detected from extension if omitted)
+    --part int              Part number for multipart upload (0 = single part)
+```
+
+```
+notion-cli file send abc123 ./report.pdf
+notion-cli file send abc123 ./chunk1.bin --part 1
+```
+
+### file complete
+
+Mark a multipart file upload as complete after all parts have been sent.
+
+```
+notion-cli file complete <file_upload_id>
+```
+
+```
+notion-cli file complete abc123
+```
+
+### file upload
+
+Upload a file in one step: creates the upload, sends the content, and completes it automatically.
+
+```
+notion-cli file upload <file_path>
+```
+
+```
+notion-cli file upload ./report.pdf
+notion-cli file upload ./image.png
+```

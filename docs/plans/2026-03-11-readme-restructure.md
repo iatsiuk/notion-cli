@@ -75,11 +75,11 @@
 - [x] write `user get` with example
 
 ### Task 9: Write File Upload Commands section
-- [ ] write `file create` with flags and example
-- [ ] write `file get` with example
-- [ ] write `file send` with flags (--content-type, --part) and example
-- [ ] write `file complete` with example
-- [ ] write `file upload` (one-step) with example
+- [x] write `file create` with flags and example
+- [x] write `file get` with example
+- [x] write `file send` with flags (--content-type, --part) and example
+- [x] write `file complete` with example
+- [x] write `file upload` (one-step) with example
 
 ### Task 10: Write Data Source Commands section
 - [ ] write `datasource list` with example
