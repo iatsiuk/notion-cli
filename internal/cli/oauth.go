@@ -2,7 +2,6 @@ package cli
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io"
 
@@ -25,21 +24,12 @@ func NewOAuthCmd() *cobra.Command {
 		// override root's PersistentPreRunE: oauth commands don't require bearer token
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 			root := cmd.Root()
-			tokenFlag, _ := root.PersistentFlags().GetString("token")
 			formatFlag, _ := root.PersistentFlags().GetString("format")
 			quiet, _ := root.PersistentFlags().GetBool("quiet")
 			verbose, _ := root.PersistentFlags().GetBool("verbose")
 
-			loaded, err := config.Load(tokenFlag, formatFlag, quiet, verbose)
+			loaded, err := config.LoadNoToken(formatFlag, quiet, verbose)
 			if err != nil {
-				if errors.Is(err, config.ErrNoToken) {
-					loaded, err = config.LoadNoToken(formatFlag, quiet, verbose)
-					if err != nil {
-						return NewCLIError(ExitAPI, err.Error())
-					}
-					cfg = loaded
-					return nil
-				}
 				return NewCLIError(ExitAPI, err.Error())
 			}
 			cfg = loaded

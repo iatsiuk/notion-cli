@@ -39,6 +39,7 @@ type tokenExchangeBody struct {
 // OAuthTokenInfo is the response from POST /v1/oauth/introspect.
 type OAuthTokenInfo struct {
 	Active    bool   `json:"active"`
+	BotID     string `json:"bot_id,omitempty"`
 	Scope     string `json:"scope,omitempty"`
 	IAT       int64  `json:"iat,omitempty"`
 	RequestID string `json:"request_id,omitempty"`

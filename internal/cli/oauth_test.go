@@ -168,9 +168,12 @@ func TestRunOAuthIntrospect_Inactive(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	out := buf.String()
-	if !strings.Contains(out, "false") {
-		t.Errorf("output missing active:false, got: %s", out)
+	var obj map[string]any
+	if err := json.Unmarshal([]byte(strings.TrimSpace(buf.String())), &obj); err != nil {
+		t.Fatalf("output not valid JSON: %v, got: %s", err, buf.String())
+	}
+	if obj["active"] != false {
+		t.Errorf("active = %v, want false", obj["active"])
 	}
 }
 

@@ -148,6 +148,16 @@ notion-cli file complete <file_upload_id>
 
 # upload a file in one step (create + send + complete)
 notion-cli file upload ./report.pdf
+
+# exchange an authorization code for an access token
+notion-cli oauth token --client-id <client-id> --client-secret <client-secret> --code <code>
+notion-cli oauth token --client-id <client-id> --client-secret <client-secret> --code <code> --redirect-uri https://example.com/cb
+
+# introspect an access token
+notion-cli oauth introspect --client-id <client-id> --client-secret <client-secret> --token <token>
+
+# revoke an access token
+notion-cli oauth revoke --client-id <client-id> --client-secret <client-secret> --token <token>
 ```
 
 ## Global Flags
