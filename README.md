@@ -175,7 +175,7 @@ notion-cli page move abc123 --parent data_source_id:ghi789
 
 ### page markdown
 
-Get the full page content rendered as Markdown.
+Get the full page content rendered as Markdown. Always outputs plain Markdown text; `--format` is not applicable.
 
 ```
 notion-cli page markdown <page_id>
@@ -664,7 +664,7 @@ Prints `ok` on success. Returns a non-zero exit code on connection or authentica
 
 notion-cli outputs JSON by default on TTY and JSONL (one JSON object per line) when piped, making it easy to compose with jq and other Unix tools.
 
-Extract all page titles from a database query:
+Extract all page titles from a database query (replace `Name` with your title property name):
 
 ```sh
 notion-cli db query <database_id> | jq -r '.properties.Name.title[].plain_text'
@@ -681,8 +681,8 @@ notion-cli db query <database_id> \
 Archive all pages returned by a search and print their titles:
 
 ```sh
-notion-cli search "meeting notes" | jq -r '.id' | while read id; do
-  title=$(notion-cli page get "$id" | jq -r '.properties.title.title[].plain_text')
+notion-cli search "meeting notes" --type page | jq -r '.id' | while read id; do
+  title=$(notion-cli page get "$id" | jq -r '[.properties[] | select(.type == "title")] | .[0].title[].plain_text')
   notion-cli page update "$id" --archive
   echo "archived: $title"
 done
