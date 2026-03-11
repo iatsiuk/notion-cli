@@ -57,13 +57,13 @@
 - [x] run tests - must pass before next task
 
 ### Task 5: File upload CLI commands
-- [ ] write tests for all file subcommands in `internal/cli/file_test.go`
-- [ ] implement `file create` command
-- [ ] implement `file get` command
-- [ ] implement `file delete` command
-- [ ] implement `file send` command (reads file from disk)
-- [ ] implement `file complete` command
-- [ ] run tests - must pass before next task
+- [x] write tests for all file subcommands in `internal/cli/file_test.go`
+- [x] implement `file create` command
+- [x] implement `file get` command
+- [x] implement `file delete` command
+- [x] implement `file send` command (reads file from disk)
+- [x] implement `file complete` command
+- [x] run tests - must pass before next task
 
 ### Task 6: Convenience `file upload` command (all-in-one)
 - [ ] write tests for `file upload <file_path>`:
