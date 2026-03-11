@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"sync/atomic"
 	"testing"
 
 	"notion-cli/internal/api"
@@ -497,9 +498,9 @@ func TestListBlockChildren_Paginated(t *testing.T) {
 		"next_cursor": null
 	}`
 
-	var requestCount int
+	var requestCount atomic.Int32
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		requestCount++
+		requestCount.Add(1)
 		w.Header().Set("Content-Type", "application/json")
 		if r.URL.Query().Get("start_cursor") == "cursor-abc" {
 			_, _ = w.Write([]byte(page2))
@@ -518,8 +519,8 @@ func TestListBlockChildren_Paginated(t *testing.T) {
 	if len(blocks) != 2 {
 		t.Fatalf("len = %d, want 2", len(blocks))
 	}
-	if requestCount != 2 {
-		t.Errorf("requestCount = %d, want 2", requestCount)
+	if requestCount.Load() != 2 {
+		t.Errorf("requestCount = %d, want 2", requestCount.Load())
 	}
 }
 
