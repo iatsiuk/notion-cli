@@ -53,6 +53,7 @@ type Comment struct {
 	LastEditedTime string          `json:"last_edited_time"`
 	CreatedBy      PartialUser     `json:"created_by"`
 	DisplayName    json.RawMessage `json:"display_name,omitempty"`
+	Attachments    json.RawMessage `json:"attachments,omitempty"`
 }
 
 // CreateCommentRequest is the body for creating a comment.
