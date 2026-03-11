@@ -333,3 +333,61 @@ func TestRunPageUpdate_APIError(t *testing.T) {
 		t.Errorf("expected exit code %d, got %d", ExitAPI, cliErr.Code)
 	}
 }
+
+func TestRunPageProperty_OutputsProperty(t *testing.T) {
+	t.Parallel()
+	const propJSON = `{"object":"property_item","type":"number","number":42,"id":"prop-1"}`
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v1/pages/page-1/properties/prop-1" {
+			http.Error(w, "not found", http.StatusNotFound)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(propJSON))
+	}))
+	defer srv.Close()
+
+	client := api.NewClient("token", api.WithBaseURL(srv.URL), api.WithHTTPClient(srv.Client()))
+	var buf bytes.Buffer
+	err := runPageProperty(context.Background(), client, &buf, "json", "page-1", "prop-1")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(buf.String(), "prop-1") {
+		t.Errorf("output missing property id, got: %s", buf.String())
+	}
+}
+
+func TestRunPageProperty_MissingArguments(t *testing.T) {
+	t.Parallel()
+	cmd := NewPagePropertyCmd()
+	cmd.SetArgs([]string{"page-1"}) // missing property_id
+	err := cmd.Execute()
+	if err == nil {
+		t.Fatal("expected error for missing argument, got nil")
+	}
+}
+
+func TestRunPageProperty_APIError(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+		_, _ = w.Write([]byte(`{"status":404,"code":"object_not_found","message":"property not found"}`))
+	}))
+	defer srv.Close()
+
+	client := api.NewClient("token", api.WithBaseURL(srv.URL), api.WithHTTPClient(srv.Client()))
+	var buf bytes.Buffer
+	err := runPageProperty(context.Background(), client, &buf, "json", "page-1", "bad-prop")
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+
+	var cliErr *CLIError
+	if !errors.As(err, &cliErr) {
+		t.Fatalf("expected CLIError, got %T: %v", err, err)
+	}
+	if cliErr.Code != ExitAPI {
+		t.Errorf("expected exit code %d, got %d", ExitAPI, cliErr.Code)
+	}
+}

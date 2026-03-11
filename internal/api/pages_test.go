@@ -413,3 +413,107 @@ func TestUpdatePage_Error(t *testing.T) {
 		t.Errorf("Status = %d, want 404", apiErr.Status)
 	}
 }
+
+func TestGetPageProperty_ReturnsSingleItem(t *testing.T) {
+	t.Parallel()
+
+	const propJSON = `{"object":"property_item","type":"number","number":42,"id":"prop-1"}`
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v1/pages/page-1/properties/prop-1" || r.Method != http.MethodGet {
+			http.Error(w, "not found", http.StatusNotFound)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(propJSON))
+	}))
+	defer srv.Close()
+
+	client := api.NewClient("token", api.WithBaseURL(srv.URL))
+	raw, err := client.GetPageProperty(t.Context(), "page-1", "prop-1")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	var obj map[string]any
+	if err := json.Unmarshal(raw, &obj); err != nil {
+		t.Fatalf("unmarshal error: %v", err)
+	}
+	if obj["object"] != "property_item" {
+		t.Errorf("object = %v, want %q", obj["object"], "property_item")
+	}
+	if obj["type"] != "number" {
+		t.Errorf("type = %v, want %q", obj["type"], "number")
+	}
+}
+
+func TestGetPageProperty_HandlesPagination(t *testing.T) {
+	t.Parallel()
+
+	const item1 = `{"object":"property_item","type":"rich_text","rich_text":{"plain_text":"Hello"}}`
+	const item2 = `{"object":"property_item","type":"rich_text","rich_text":{"plain_text":"World"}}`
+
+	callCount := 0
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v1/pages/page-1/properties/prop-rt" {
+			http.Error(w, "not found", http.StatusNotFound)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		callCount++
+		if r.URL.Query().Get("start_cursor") == "" {
+			_, _ = w.Write([]byte(`{"object":"list","type":"property_item","results":[` + item1 + `],"has_more":true,"next_cursor":"cursor1"}`))
+		} else {
+			_, _ = w.Write([]byte(`{"object":"list","type":"property_item","results":[` + item2 + `],"has_more":false,"next_cursor":null}`))
+		}
+	}))
+	defer srv.Close()
+
+	client := api.NewClient("token", api.WithBaseURL(srv.URL))
+	raw, err := client.GetPageProperty(t.Context(), "page-1", "prop-rt")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if callCount != 2 {
+		t.Errorf("callCount = %d, want 2", callCount)
+	}
+
+	var obj map[string]any
+	if err := json.Unmarshal(raw, &obj); err != nil {
+		t.Fatalf("unmarshal error: %v", err)
+	}
+	results, ok := obj["results"].([]any)
+	if !ok {
+		t.Fatalf("results missing or wrong type")
+	}
+	if len(results) != 2 {
+		t.Errorf("len(results) = %d, want 2", len(results))
+	}
+	if obj["has_more"] != false {
+		t.Errorf("has_more = %v, want false", obj["has_more"])
+	}
+}
+
+func TestGetPageProperty_Error(t *testing.T) {
+	t.Parallel()
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+		_, _ = w.Write([]byte(`{"status":404,"code":"object_not_found","message":"property not found"}`))
+	}))
+	defer srv.Close()
+
+	client := api.NewClient("token", api.WithBaseURL(srv.URL))
+	_, err := client.GetPageProperty(t.Context(), "page-1", "bad-prop")
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+
+	var apiErr *api.APIError
+	if !api.AsAPIError(err, &apiErr) {
+		t.Fatalf("expected *APIError, got %T: %v", err, err)
+	}
+	if apiErr.Status != 404 {
+		t.Errorf("Status = %d, want 404", apiErr.Status)
+	}
+}

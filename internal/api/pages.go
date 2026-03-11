@@ -83,6 +83,69 @@ func (c *Client) UpdatePage(ctx context.Context, pageID string, req *UpdatePageR
 	return &p, nil
 }
 
+// propertyListPage is a partial decode of a paginated property response.
+type propertyListPage struct {
+	Object     string            `json:"object"`
+	Type       string            `json:"type"`
+	Results    []json.RawMessage `json:"results"`
+	NextCursor *string           `json:"next_cursor"`
+	HasMore    bool              `json:"has_more"`
+}
+
+// GetPageProperty retrieves a page property by ID.
+// For paginated properties (title, rich_text, relation, rollup), collects all pages.
+func (c *Client) GetPageProperty(ctx context.Context, pageID, propertyID string) (json.RawMessage, error) {
+	path := "/v1/pages/" + url.PathEscape(pageID) + "/properties/" + url.PathEscape(propertyID)
+
+	raw, err := c.Get(ctx, path, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var first propertyListPage
+	if err := json.Unmarshal(raw, &first); err != nil {
+		return nil, fmt.Errorf("decode property: %w", err)
+	}
+
+	if first.Object != "list" || !first.HasMore {
+		return raw, nil
+	}
+
+	allResults := make([]json.RawMessage, 0, len(first.Results))
+	allResults = append(allResults, first.Results...)
+
+	cursor := first.NextCursor
+	for cursor != nil {
+		params := url.Values{"start_cursor": {*cursor}}
+		raw, err = c.Get(ctx, path, params)
+		if err != nil {
+			return nil, err
+		}
+		var page propertyListPage
+		if err := json.Unmarshal(raw, &page); err != nil {
+			return nil, fmt.Errorf("decode property page: %w", err)
+		}
+		allResults = append(allResults, page.Results...)
+		if !page.HasMore {
+			cursor = nil
+		} else {
+			cursor = page.NextCursor
+		}
+	}
+
+	merged := propertyListPage{
+		Object:  first.Object,
+		Type:    first.Type,
+		Results: allResults,
+		HasMore: false,
+	}
+	out, err := json.Marshal(merged)
+	if err != nil {
+		return nil, fmt.Errorf("encode merged property: %w", err)
+	}
+	return out, nil
+}
+
 // GetPage retrieves a page by ID.
 func (c *Client) GetPage(ctx context.Context, pageID string) (*Page, error) {
 	raw, err := c.Get(ctx, "/v1/pages/"+url.PathEscape(pageID), nil)

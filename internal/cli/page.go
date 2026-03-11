@@ -25,6 +25,7 @@ func NewPageCmd() *cobra.Command {
 	cmd.AddCommand(NewPageGetCmd())
 	cmd.AddCommand(NewPageCreateCmd())
 	cmd.AddCommand(NewPageUpdateCmd())
+	cmd.AddCommand(NewPagePropertyCmd())
 	return cmd
 }
 
@@ -132,6 +133,31 @@ func runPageUpdate(ctx context.Context, client *api.Client, w io.Writer, format,
 		return fmt.Errorf("output format: %w", err)
 	}
 	return f.Format(w, page)
+}
+
+// NewPagePropertyCmd returns the "page property" cobra subcommand.
+func NewPagePropertyCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "property <page_id> <property_id>",
+		Short: "Get a Notion page property by ID",
+		Args:  cobra.ExactArgs(2),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return runPageProperty(cmd.Context(), newClientFromCfg(), cmd.OutOrStdout(), cfg.Format, args[0], args[1])
+		},
+	}
+}
+
+func runPageProperty(ctx context.Context, client *api.Client, w io.Writer, format, pageID, propertyID string) error {
+	raw, err := client.GetPageProperty(ctx, pageID, propertyID)
+	if err != nil {
+		return mapAPIError(err)
+	}
+
+	f, err := output.New(format, isTerminal(w))
+	if err != nil {
+		return fmt.Errorf("output format: %w", err)
+	}
+	return f.Format(w, raw)
 }
 
 func runPageCreate(ctx context.Context, client *api.Client, w io.Writer, format, parentStr, propertiesJSON string) error {
