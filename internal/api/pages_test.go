@@ -524,7 +524,7 @@ func TestMovePage_MovesToNewParent(t *testing.T) {
 
 	var gotBody map[string]any
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/v1/pages/page-1/move" || r.Method != http.MethodPut {
+		if r.URL.Path != "/v1/pages/page-1/move" || r.Method != http.MethodPost {
 			http.Error(w, "not found", http.StatusNotFound)
 			return
 		}

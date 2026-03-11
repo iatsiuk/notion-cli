@@ -141,6 +141,10 @@ func (c *Client) GetPageProperty(ctx context.Context, pageID, propertyID string)
 		return raw, nil
 	}
 
+	if first.NextCursor == nil {
+		return nil, fmt.Errorf("pagination: has_more=true but next_cursor is null")
+	}
+
 	allResults, err := c.collectPropertyPages(ctx, path, first)
 	if err != nil {
 		return nil, err
@@ -166,7 +170,7 @@ type movePageRequest struct {
 
 // MovePage moves a page to a new parent.
 func (c *Client) MovePage(ctx context.Context, pageID string, parent *Parent) (*Page, error) {
-	raw, err := c.Put(ctx, "/v1/pages/"+url.PathEscape(pageID)+"/move", &movePageRequest{Parent: *parent})
+	raw, err := c.Post(ctx, "/v1/pages/"+url.PathEscape(pageID)+"/move", &movePageRequest{Parent: *parent})
 	if err != nil {
 		return nil, err
 	}
