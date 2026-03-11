@@ -9,22 +9,19 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
+	"golang.org/x/term"
 
 	"notion-cli/internal/api"
 	"notion-cli/internal/output"
 )
 
-// isCharDevice reports whether v (*os.File) is a character device.
+// isCharDevice reports whether v (*os.File) is a TTY.
 func isCharDevice(v any) bool {
 	f, ok := v.(*os.File)
 	if !ok {
 		return false
 	}
-	fi, err := f.Stat()
-	if err != nil {
-		return false
-	}
-	return fi.Mode()&os.ModeCharDevice != 0
+	return term.IsTerminal(int(f.Fd())) //nolint:gosec
 }
 
 // isTerminal reports whether w is a character device (TTY).
