@@ -80,12 +80,12 @@ Fix 3 confirmed bugs from e2e testing (`e2e-errors.md`):
 - [x] run `make build` -- linter must pass
 
 ### Task 7: Verify acceptance criteria
-- [ ] verify table format works for all API types used in commands (User, Database, Page, Block, FileUpload, Comment, Search results)
-- [ ] verify file upload succeeds end-to-end (single-part auto-complete scenario)
-- [ ] verify block append returns error on TTY stdin without --children
-- [ ] run full test suite: `go test -race ./...`
-- [ ] run linter: `golangci-lint run`
-- [ ] all e2e-errors.md bugs addressed
+- [x] verify table format works for all API types used in commands (User, Database, Page, Block, FileUpload, Comment, Search results)
+- [x] verify file upload succeeds end-to-end (single-part auto-complete scenario)
+- [x] verify block append returns error on TTY stdin without --children
+- [x] run full test suite: `go test -race ./...`
+- [x] run linter: `golangci-lint run`
+- [x] all e2e-errors.md bugs addressed
 
 ## Technical Details
 
