@@ -200,7 +200,7 @@ func TestSendFileContent(t *testing.T) {
 			http.Error(w, "expected multipart/form-data", http.StatusBadRequest)
 			return
 		}
-		if err := r.ParseMultipartForm(1 << 20); err != nil {
+		if err := r.ParseMultipartForm(1 << 20); err != nil { //nolint:gosec // test server
 			http.Error(w, "parse multipart: "+err.Error(), http.StatusBadRequest)
 			return
 		}
@@ -233,11 +233,11 @@ func TestSendFileContent_WithPartNumber(t *testing.T) {
 	t.Parallel()
 
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if err := r.ParseMultipartForm(1 << 20); err != nil {
+		if err := r.ParseMultipartForm(1 << 20); err != nil { //nolint:gosec // test server
 			http.Error(w, "parse multipart: "+err.Error(), http.StatusBadRequest)
 			return
 		}
-		pn := r.FormValue("part_number")
+		pn := r.FormValue("part_number") //nolint:gosec // test server
 		if pn != "2" {
 			http.Error(w, "expected part_number=2, got "+pn, http.StatusBadRequest)
 			return
