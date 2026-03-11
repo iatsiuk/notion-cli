@@ -51,10 +51,10 @@ Fix 3 confirmed bugs from e2e testing (`e2e-errors.md`):
 - [x] run tests -- confirm they FAIL with "unsupported type" error
 
 ### Task 2: Table format -- fix toRows() to handle arbitrary structs
-- [ ] in `toRows()` (`internal/output/table.go:49-64`), add conversion path: marshal struct to JSON, then unmarshal to `map[string]any` (reuse json round-trip pattern from jsonl.go reflect approach)
-- [ ] handle both single struct (pointer) and slice of structs
-- [ ] run tests from Task 1 -- must pass
-- [ ] run `make build` -- linter must pass
+- [x] in `toRows()` (`internal/output/table.go:49-64`), add conversion path: marshal struct to JSON, then unmarshal to `map[string]any` (reuse json round-trip pattern from jsonl.go reflect approach)
+- [x] handle both single struct (pointer) and slice of structs
+- [x] run tests from Task 1 -- must pass
+- [x] run `make build` -- linter must pass
 
 ### Task 3: File upload -- write failing test for auto-completed upload
 - [ ] add test `TestRunFileUpload_SkipsCompleteWhenAlreadyUploaded` -- mock server returns status="uploaded" after send, expect no complete call and success output
