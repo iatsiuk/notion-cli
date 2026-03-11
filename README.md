@@ -185,3 +185,84 @@ notion-cli page markdown <page_id>
 notion-cli page markdown abc123
 notion-cli page markdown abc123 > page.md
 ```
+
+## Database Commands
+
+### db get
+
+Get a database by ID.
+
+```
+notion-cli db get <database_id>
+```
+
+```
+notion-cli db get abc123
+```
+
+### db list
+
+List all databases accessible to the integration.
+
+```
+notion-cli db list
+```
+
+```
+notion-cli db list
+notion-cli db list --format table
+```
+
+### db create
+
+Create a new database under a page or workspace.
+
+```
+notion-cli db create [flags]
+
+Flags:
+    --parent string       Parent: page_id:id or workspace (required)
+    --title string        Database title (plain text)
+    --properties string   Properties schema as JSON object
+```
+
+```
+notion-cli db create --parent page_id:abc123 --title "My Tasks"
+notion-cli db create --parent workspace --title "Projects" --properties '{"Name":{"title":{}},"Status":{"select":{}}}'
+```
+
+### db update
+
+Update a database title, description, or properties schema.
+
+```
+notion-cli db update <database_id> [flags]
+
+Flags:
+    --title string        New database title (plain text)
+    --description string  New database description (plain text)
+    --properties string   Properties schema as JSON object
+```
+
+```
+notion-cli db update abc123 --title "Updated Title"
+notion-cli db update abc123 --description "Tracks all tasks" --properties '{"Priority":{"select":{}}}'
+```
+
+### db query
+
+Query pages in a database with optional filters and sorts.
+
+```
+notion-cli db query <database_id> [flags]
+
+Flags:
+    --filter string   Filter as JSON object
+    --sort string     Sorts as JSON array
+```
+
+```
+notion-cli db query abc123
+notion-cli db query abc123 --filter '{"property":"Status","select":{"equals":"Done"}}'
+notion-cli db query abc123 --sort '[{"property":"Name","direction":"ascending"}]'
+```

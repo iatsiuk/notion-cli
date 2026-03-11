@@ -51,11 +51,11 @@
 - [x] write `page markdown` with example
 
 ### Task 5: Write Database Commands section
-- [ ] write `db get` with example
-- [ ] write `db list` with example
-- [ ] write `db create` with flags (--parent, --title, --properties) and example
-- [ ] write `db update` with flags (--title, --description, --properties) and example
-- [ ] write `db query` with flags (--filter, --sort) and examples
+- [x] write `db get` with example
+- [x] write `db list` with example
+- [x] write `db create` with flags (--parent, --title, --properties) and example
+- [x] write `db update` with flags (--title, --description, --properties) and example
+- [x] write `db query` with flags (--filter, --sort) and examples
 
 ### Task 6: Write Block Commands section
 - [ ] write `block get` with example
