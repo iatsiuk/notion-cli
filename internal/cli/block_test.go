@@ -413,3 +413,83 @@ func TestRunBlockAppend_NotFound(t *testing.T) {
 		t.Errorf("expected exit code %d, got %d", ExitAPI, cliErr.Code)
 	}
 }
+
+const testDeletedBlockJSON = `{
+	"object": "block",
+	"id": "block-1",
+	"type": "paragraph",
+	"has_children": false,
+	"archived": true,
+	"created_time": "2024-01-01T00:00:00.000Z",
+	"last_edited_time": "2024-01-02T00:00:00.000Z",
+	"created_by": {"object": "user", "id": "user-1"},
+	"last_edited_by": {"object": "user", "id": "user-1"},
+	"parent": {"type": "page_id", "page_id": "page-1"},
+	"paragraph": {"rich_text": [], "color": "default"}
+}`
+
+func TestRunBlockDelete_OutputsArchivedBlock(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v1/blocks/block-1" || r.Method != http.MethodDelete {
+			http.Error(w, "bad request", http.StatusBadRequest)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(testDeletedBlockJSON))
+	}))
+	defer srv.Close()
+
+	client := api.NewClient("token", api.WithBaseURL(srv.URL), api.WithHTTPClient(srv.Client()))
+	var buf bytes.Buffer
+	err := runBlockDelete(context.Background(), client, &buf, "json", "block-1")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	out := buf.String()
+	if !strings.Contains(out, "block-1") {
+		t.Errorf("output missing block ID, got: %s", out)
+	}
+	var obj map[string]any
+	if err := json.Unmarshal([]byte(strings.TrimSpace(out)), &obj); err != nil {
+		t.Fatalf("output is not valid JSON: %v", err)
+	}
+	if obj["archived"] != true {
+		t.Errorf("archived = %v, want true", obj["archived"])
+	}
+}
+
+func TestRunBlockDelete_MissingArgument(t *testing.T) {
+	t.Parallel()
+	cmd := NewBlockDeleteCmd()
+	cmd.SetArgs([]string{})
+	err := cmd.Execute()
+	if err == nil {
+		t.Fatal("expected error for missing argument, got nil")
+	}
+}
+
+func TestRunBlockDelete_NotFound(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+		_, _ = w.Write([]byte(`{"status":404,"code":"object_not_found","message":"Could not find block with ID: bad-id."}`))
+	}))
+	defer srv.Close()
+
+	client := api.NewClient("token", api.WithBaseURL(srv.URL), api.WithHTTPClient(srv.Client()))
+	var buf bytes.Buffer
+	err := runBlockDelete(context.Background(), client, &buf, "json", "bad-id")
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+
+	var cliErr *CLIError
+	if !errors.As(err, &cliErr) {
+		t.Fatalf("expected CLIError, got %T: %v", err, err)
+	}
+	if cliErr.Code != ExitAPI {
+		t.Errorf("expected exit code %d, got %d", ExitAPI, cliErr.Code)
+	}
+}

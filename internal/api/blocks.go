@@ -139,6 +139,19 @@ func (c *Client) AppendBlockChildren(ctx context.Context, blockID string, childr
 	return blocks, nil
 }
 
+// DeleteBlock deletes (archives) a block by ID and returns the archived block.
+func (c *Client) DeleteBlock(ctx context.Context, blockID string) (*Block, error) {
+	raw, err := c.Delete(ctx, "/v1/blocks/"+url.PathEscape(blockID))
+	if err != nil {
+		return nil, err
+	}
+	var b Block
+	if err := json.Unmarshal(raw, &b); err != nil {
+		return nil, fmt.Errorf("decode block: %w", err)
+	}
+	return &b, nil
+}
+
 // GetBlock retrieves a block by ID.
 func (c *Client) GetBlock(ctx context.Context, blockID string) (*Block, error) {
 	raw, err := c.Get(ctx, "/v1/blocks/"+url.PathEscape(blockID), nil)

@@ -643,3 +643,72 @@ func TestAppendBlockChildren_NotFound(t *testing.T) {
 		t.Errorf("Status = %d, want 404", apiErr.Status)
 	}
 }
+
+func TestDeleteBlock_DeletesBlock(t *testing.T) {
+	t.Parallel()
+
+	const archivedJSON = `{
+		"object": "block",
+		"id": "block-1",
+		"type": "paragraph",
+		"has_children": false,
+		"archived": true,
+		"created_time": "2024-01-01T00:00:00.000Z",
+		"last_edited_time": "2024-01-05T00:00:00.000Z",
+		"created_by": {"object": "user", "id": "user-1"},
+		"last_edited_by": {"object": "user", "id": "user-2"},
+		"parent": {"type": "page_id", "page_id": "page-1"}
+	}`
+
+	var gotMethod, gotPath string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotMethod = r.Method
+		gotPath = r.URL.Path
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(archivedJSON))
+	}))
+	defer srv.Close()
+
+	client := api.NewClient("token", api.WithBaseURL(srv.URL))
+	block, err := client.DeleteBlock(t.Context(), "block-1")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if gotMethod != http.MethodDelete {
+		t.Errorf("method = %q, want %q", gotMethod, http.MethodDelete)
+	}
+	if gotPath != "/v1/blocks/block-1" {
+		t.Errorf("path = %q, want %q", gotPath, "/v1/blocks/block-1")
+	}
+	if block.ID != "block-1" {
+		t.Errorf("ID = %q, want %q", block.ID, "block-1")
+	}
+	if !block.Archived {
+		t.Error("Archived = false, want true")
+	}
+}
+
+func TestDeleteBlock_NotFound(t *testing.T) {
+	t.Parallel()
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+		_, _ = w.Write([]byte(`{"status":404,"code":"object_not_found","message":"block not found"}`))
+	}))
+	defer srv.Close()
+
+	client := api.NewClient("token", api.WithBaseURL(srv.URL))
+	_, err := client.DeleteBlock(t.Context(), "nonexistent")
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+
+	var apiErr *api.APIError
+	if !api.AsAPIError(err, &apiErr) {
+		t.Fatalf("expected *APIError, got %T: %v", err, err)
+	}
+	if apiErr.Status != 404 {
+		t.Errorf("Status = %d, want 404", apiErr.Status)
+	}
+}

@@ -25,6 +25,7 @@ func NewBlockCmd() *cobra.Command {
 	cmd.AddCommand(NewBlockUpdateCmd())
 	cmd.AddCommand(NewBlockChildrenCmd())
 	cmd.AddCommand(NewBlockAppendCmd())
+	cmd.AddCommand(NewBlockDeleteCmd())
 	return cmd
 }
 
@@ -130,6 +131,31 @@ func runBlockAppend(ctx context.Context, client *api.Client, w io.Writer, format
 		return fmt.Errorf("output format: %w", err)
 	}
 	return f.Format(w, blocks)
+}
+
+// NewBlockDeleteCmd returns the "block delete" cobra subcommand.
+func NewBlockDeleteCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "delete <block_id>",
+		Short: "Delete a Notion block by ID",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return runBlockDelete(cmd.Context(), newClientFromCfg(), cmd.OutOrStdout(), cfg.Format, args[0])
+		},
+	}
+}
+
+func runBlockDelete(ctx context.Context, client *api.Client, w io.Writer, format, blockID string) error {
+	block, err := client.DeleteBlock(ctx, blockID)
+	if err != nil {
+		return mapAPIError(err)
+	}
+
+	f, err := output.New(format, isTerminal(w))
+	if err != nil {
+		return fmt.Errorf("output format: %w", err)
+	}
+	return f.Format(w, block)
 }
 
 func runBlockUpdate(ctx context.Context, client *api.Client, w io.Writer, format, blockID, dataJSON string, archive, unarchive bool) error {
