@@ -419,6 +419,13 @@ func TestRunFileUpload_SendError(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}
+	var cliErr *CLIError
+	if !errors.As(err, &cliErr) {
+		t.Fatalf("expected CLIError, got %T: %v", err, err)
+	}
+	if cliErr.Code != ExitAPI {
+		t.Errorf("expected exit code %d, got %d", ExitAPI, cliErr.Code)
+	}
 }
 
 func TestNewFileCmd_HasUploadSubcommand(t *testing.T) {
