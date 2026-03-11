@@ -44,14 +44,14 @@
 - [x] run tests - must pass before next task
 
 ### Task 3: Query and templates API methods
-- [ ] write tests for QueryDataSource and GetDataSourceTemplates:
+- [x] write tests for QueryDataSource and GetDataSourceTemplates:
   - query returns structured data
   - templates returns available templates
   - pagination handling
   - error handling
-- [ ] implement QueryDataSource (POST /v1/data_sources/{id}/query)
-- [ ] implement GetDataSourceTemplates (GET /v1/data_sources/{id}/templates)
-- [ ] run tests - must pass before next task
+- [x] implement QueryDataSource (POST /v1/data_sources/{id}/query)
+- [x] implement GetDataSourceTemplates (GET /v1/data_sources/{id}/templates)
+- [x] run tests - must pass before next task
 
 ### Task 4: Data source CLI commands
 - [ ] write tests for all datasource subcommands in `internal/cli/datasource_test.go`

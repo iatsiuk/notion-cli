@@ -7,6 +7,27 @@ import (
 	"net/url"
 )
 
+// QueryDataSourceRequest is the body for POST /v1/data_sources/{id}/query.
+type QueryDataSourceRequest struct {
+	Filter      json.RawMessage `json:"filter,omitempty"`
+	Sorts       json.RawMessage `json:"sorts,omitempty"`
+	StartCursor string          `json:"start_cursor,omitempty"`
+}
+
+// DataSourceTemplate represents a template available in a data source.
+type DataSourceTemplate struct {
+	ID        string `json:"id"`
+	Name      string `json:"name"`
+	IsDefault bool   `json:"is_default"`
+}
+
+// templatesResponse is a partial decode of the GET /v1/data_sources/{id}/templates response.
+type templatesResponse struct {
+	Templates  []DataSourceTemplate `json:"templates"`
+	HasMore    bool                 `json:"has_more"`
+	NextCursor *string              `json:"next_cursor"`
+}
+
 // DataSource represents a Notion data source object.
 type DataSource struct {
 	Object         string                     `json:"object"`
@@ -79,6 +100,59 @@ func (c *Client) UpdateDataSource(ctx context.Context, dataSourceID string, req 
 		return nil, fmt.Errorf("decode data source: %w", err)
 	}
 	return &ds, nil
+}
+
+// QueryDataSource queries a data source and returns all matching results (auto-paginated).
+func (c *Client) QueryDataSource(ctx context.Context, dataSourceID string, req *QueryDataSourceRequest) ([]json.RawMessage, error) {
+	var r QueryDataSourceRequest
+	if req != nil {
+		r = *req
+	}
+	path := "/v1/data_sources/" + url.PathEscape(dataSourceID) + "/query"
+	all := make([]json.RawMessage, 0)
+	for {
+		raw, err := c.Post(ctx, path, r)
+		if err != nil {
+			return nil, err
+		}
+		var resp listResponse
+		if err := json.Unmarshal(raw, &resp); err != nil {
+			return nil, fmt.Errorf("decode query response: %w", err)
+		}
+		all = append(all, resp.Results...)
+		if !resp.HasMore {
+			return all, nil
+		}
+		if resp.NextCursor == nil {
+			return nil, fmt.Errorf("pagination: has_more is true but next_cursor is nil")
+		}
+		r.StartCursor = *resp.NextCursor
+	}
+}
+
+// GetDataSourceTemplates returns all templates for a data source (auto-paginated).
+func (c *Client) GetDataSourceTemplates(ctx context.Context, dataSourceID string) ([]DataSourceTemplate, error) {
+	path := "/v1/data_sources/" + url.PathEscape(dataSourceID) + "/templates"
+	all := make([]DataSourceTemplate, 0)
+	params := url.Values{}
+	for {
+		raw, err := c.Get(ctx, path, params)
+		if err != nil {
+			return nil, err
+		}
+		var resp templatesResponse
+		if err := json.Unmarshal(raw, &resp); err != nil {
+			return nil, fmt.Errorf("decode templates response: %w", err)
+		}
+		all = append(all, resp.Templates...)
+		if !resp.HasMore {
+			return all, nil
+		}
+		if resp.NextCursor == nil {
+			return nil, fmt.Errorf("pagination: has_more is true but next_cursor is nil")
+		}
+		params.Set("start_cursor", *resp.NextCursor)
+	}
 }
 
 // ListDataSources returns all data sources accessible to the integration via the search API.
