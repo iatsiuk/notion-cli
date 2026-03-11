@@ -74,10 +74,10 @@ Fix 3 confirmed bugs from e2e testing (`e2e-errors.md`):
 - [x] run tests -- confirm TTY test FAILS (current code hangs or reads empty)
 
 ### Task 6: Block append -- add TTY check before stdin read
-- [ ] add `isInputTerminal(r io.Reader) bool` helper in `internal/cli/block.go` (similar to existing `isTerminal` but for `io.Reader`)
-- [ ] in `runBlockAppend()` (`internal/cli/block.go:119-129`), before `io.ReadAll(stdin)`: check `isInputTerminal(stdin)`, return error immediately if true
-- [ ] run tests from Task 5 -- must pass
-- [ ] run `make build` -- linter must pass
+- [x] add `isInputTerminal(r io.Reader) bool` helper in `internal/cli/block.go` (similar to existing `isTerminal` but for `io.Reader`)
+- [x] in `runBlockAppend()` (`internal/cli/block.go:119-129`), before `io.ReadAll(stdin)`: check `isInputTerminal(stdin)`, return error immediately if true
+- [x] run tests from Task 5 -- must pass
+- [x] run `make build` -- linter must pass
 
 ### Task 7: Verify acceptance criteria
 - [ ] verify table format works for all API types used in commands (User, Database, Page, Block, FileUpload, Comment, Search results)
