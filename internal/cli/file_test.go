@@ -354,3 +354,132 @@ func TestNewFileCompleteCmd_MissingArgument(t *testing.T) {
 		t.Fatal("expected error for missing argument, got nil")
 	}
 }
+
+func TestRunFileUpload_ChainsCreateSendComplete(t *testing.T) {
+	t.Parallel()
+	var calls []string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		calls = append(calls, r.Method+":"+r.URL.Path)
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(testFileUploadJSON))
+	}))
+	defer srv.Close()
+
+	tmp := t.TempDir()
+	fpath := filepath.Join(tmp, "hello.txt")
+	if err := os.WriteFile(fpath, []byte("hello world\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	client := api.NewClient("token", api.WithBaseURL(srv.URL), api.WithHTTPClient(srv.Client()))
+	var buf bytes.Buffer
+	err := runFileUpload(context.Background(), client, &buf, "json", fpath)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(buf.String(), "fu-1") {
+		t.Errorf("output missing file upload ID, got: %s", buf.String())
+	}
+	if len(calls) != 3 {
+		t.Errorf("expected 3 API calls, got %d: %v", len(calls), calls)
+	}
+	if calls[0] != "POST:/v1/file_uploads" {
+		t.Errorf("first call = %q, want POST:/v1/file_uploads", calls[0])
+	}
+	if calls[1] != "POST:/v1/file_uploads/fu-1/send" {
+		t.Errorf("second call = %q, want POST:/v1/file_uploads/fu-1/send", calls[1])
+	}
+	if calls[2] != "POST:/v1/file_uploads/fu-1/complete" {
+		t.Errorf("third call = %q, want POST:/v1/file_uploads/fu-1/complete", calls[2])
+	}
+}
+
+func TestRunFileUpload_FileNotFound(t *testing.T) {
+	t.Parallel()
+	client := api.NewClient("token")
+	var buf bytes.Buffer
+	err := runFileUpload(context.Background(), client, &buf, "json", "/nonexistent/file.txt")
+	if err == nil {
+		t.Fatal("expected error for missing file, got nil")
+	}
+}
+
+func TestRunFileUpload_CreateError(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusUnauthorized)
+		_, _ = w.Write([]byte(`{"status":401,"code":"unauthorized","message":"invalid token"}`))
+	}))
+	defer srv.Close()
+
+	tmp := t.TempDir()
+	fpath := filepath.Join(tmp, "hello.txt")
+	if err := os.WriteFile(fpath, []byte("data"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	client := api.NewClient("token", api.WithBaseURL(srv.URL), api.WithHTTPClient(srv.Client()))
+	var buf bytes.Buffer
+	err := runFileUpload(context.Background(), client, &buf, "json", fpath)
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+	var cliErr *CLIError
+	if !errors.As(err, &cliErr) {
+		t.Fatalf("expected CLIError, got %T: %v", err, err)
+	}
+	if cliErr.Code != ExitAuth {
+		t.Errorf("expected exit code %d, got %d", ExitAuth, cliErr.Code)
+	}
+}
+
+func TestRunFileUpload_SendError(t *testing.T) {
+	t.Parallel()
+	callCount := 0
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		callCount++
+		if callCount == 1 {
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(testFileUploadJSON))
+			return
+		}
+		w.WriteHeader(http.StatusNotFound)
+		_, _ = w.Write([]byte(`{"status":404,"code":"object_not_found","message":"not found"}`))
+	}))
+	defer srv.Close()
+
+	tmp := t.TempDir()
+	fpath := filepath.Join(tmp, "hello.txt")
+	if err := os.WriteFile(fpath, []byte("data"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	client := api.NewClient("token", api.WithBaseURL(srv.URL), api.WithHTTPClient(srv.Client()))
+	var buf bytes.Buffer
+	err := runFileUpload(context.Background(), client, &buf, "json", fpath)
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+}
+
+func TestNewFileCmd_HasUploadSubcommand(t *testing.T) {
+	t.Parallel()
+	cmd := NewFileCmd()
+	names := make(map[string]bool)
+	for _, sub := range cmd.Commands() {
+		names[sub.Name()] = true
+	}
+	if !names["upload"] {
+		t.Error("missing subcommand \"upload\"")
+	}
+}
+
+func TestNewFileUploadCmd_MissingArgument(t *testing.T) {
+	t.Parallel()
+	cmd := NewFileUploadCmd()
+	cmd.SetArgs([]string{})
+	err := cmd.Execute()
+	if err == nil {
+		t.Fatal("expected error for missing argument, got nil")
+	}
+}

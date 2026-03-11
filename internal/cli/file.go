@@ -28,6 +28,7 @@ func NewFileCmd() *cobra.Command {
 	cmd.AddCommand(NewFileDeleteCmd())
 	cmd.AddCommand(NewFileSendCmd())
 	cmd.AddCommand(NewFileCompleteCmd())
+	cmd.AddCommand(NewFileUploadCmd())
 	return cmd
 }
 
@@ -173,6 +174,56 @@ func runFileComplete(ctx context.Context, client *api.Client, w io.Writer, forma
 	if err != nil {
 		return mapAPIError(err)
 	}
+	out, err := output.New(format, isTerminal(w))
+	if err != nil {
+		return fmt.Errorf("output format: %w", err)
+	}
+	return out.Format(w, fu)
+}
+
+// NewFileUploadCmd returns the "file upload" cobra subcommand (create + send + complete).
+func NewFileUploadCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "upload <file_path>",
+		Short: "Upload a file in one step (create, send, complete)",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return runFileUpload(cmd.Context(), newClientFromCfg(), cmd.OutOrStdout(), cfg.Format, args[0])
+		},
+	}
+}
+
+func runFileUpload(ctx context.Context, client *api.Client, w io.Writer, format, filePath string) error {
+	filename := filepath.Base(filePath)
+	contentType := mime.TypeByExtension(filepath.Ext(filePath))
+	if contentType == "" {
+		contentType = "application/octet-stream"
+	}
+
+	fu, err := client.CreateFileUpload(ctx, api.CreateFileUploadParams{
+		Filename:    filename,
+		ContentType: contentType,
+	})
+	if err != nil {
+		return mapAPIError(err)
+	}
+
+	f, err := os.Open(filePath)
+	if err != nil {
+		return fmt.Errorf("open file: %w", err)
+	}
+	defer func() { _ = f.Close() }()
+
+	fu, err = client.SendFileContent(ctx, fu.ID, filename, contentType, f, 0)
+	if err != nil {
+		return mapAPIError(err)
+	}
+
+	fu, err = client.CompleteFileUpload(ctx, fu.ID)
+	if err != nil {
+		return mapAPIError(err)
+	}
+
 	out, err := output.New(format, isTerminal(w))
 	if err != nil {
 		return fmt.Errorf("output format: %w", err)

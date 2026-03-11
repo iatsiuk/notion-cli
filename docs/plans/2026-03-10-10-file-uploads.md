@@ -66,12 +66,12 @@
 - [x] run tests - must pass before next task
 
 ### Task 6: Convenience `file upload` command (all-in-one)
-- [ ] write tests for `file upload <file_path>`:
+- [x] write tests for `file upload <file_path>`:
   - creates upload, sends content, completes - all in one
   - outputs final file upload object
   - error handling at each step
-- [ ] implement `file upload` command that chains create -> send -> complete
-- [ ] run tests - must pass before next task
+- [x] implement `file upload` command that chains create -> send -> complete
+- [x] run tests - must pass before next task
 
 ### Task 7: Verify acceptance criteria
 - [ ] verify all file upload commands work
