@@ -140,6 +140,21 @@ func TestListDatabases(t *testing.T) {
 			http.Error(w, "not found", http.StatusNotFound)
 			return
 		}
+		body, _ := io.ReadAll(r.Body)
+		var payload struct {
+			Filter struct {
+				Value    string `json:"value"`
+				Property string `json:"property"`
+			} `json:"filter"`
+		}
+		if err := json.Unmarshal(body, &payload); err != nil {
+			http.Error(w, "bad body", http.StatusBadRequest)
+			return
+		}
+		if payload.Filter.Value != "data_source" || payload.Filter.Property != "object" {
+			http.Error(w, "bad filter", http.StatusBadRequest)
+			return
+		}
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = w.Write([]byte(page1))
 	}))

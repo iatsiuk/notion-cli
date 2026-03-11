@@ -39,17 +39,6 @@ type Database struct {
 	Properties     map[string]json.RawMessage `json:"properties"`
 }
 
-// searchRequest is the body for POST /v1/search.
-type searchRequest struct {
-	Filter      searchFilter `json:"filter"`
-	StartCursor string       `json:"start_cursor,omitempty"`
-}
-
-type searchFilter struct {
-	Value    string `json:"value"`
-	Property string `json:"property"`
-}
-
 // listResponse is a partial decode of a Notion paginated list response.
 type listResponse struct {
 	Results    []json.RawMessage `json:"results"`
@@ -59,8 +48,8 @@ type listResponse struct {
 
 // ListDatabases returns all databases accessible to the integration via the search API.
 func (c *Client) ListDatabases(ctx context.Context) ([]Database, error) {
-	req := searchRequest{
-		Filter: searchFilter{Value: "database", Property: "object"},
+	req := SearchRequest{
+		Filter: &SearchFilter{Value: "data_source", Property: "object"},
 	}
 	all := make([]Database, 0)
 	for {
