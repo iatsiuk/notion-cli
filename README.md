@@ -112,6 +112,22 @@ notion-cli comment create --discussion <discussion-id> --text "Reply"
 
 # get a comment
 notion-cli comment get <comment-id>
+
+# initiate a file upload
+notion-cli file create --filename report.pdf --content-type application/pdf
+
+# get file upload status
+notion-cli file get <file_upload_id>
+
+# upload file content to an existing file upload
+notion-cli file send <file_upload_id> ./report.pdf
+notion-cli file send <file_upload_id> ./report.pdf --part 1
+
+# mark a file upload as complete
+notion-cli file complete <file_upload_id>
+
+# upload a file in one step (create + send + complete)
+notion-cli file upload ./report.pdf
 ```
 
 ## Global Flags
