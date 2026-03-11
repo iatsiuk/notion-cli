@@ -9,10 +9,13 @@ import (
 
 // RichText represents a Notion rich text object.
 type RichText struct {
-	Type      string          `json:"type"`
-	Text      json.RawMessage `json:"text,omitempty"`
-	PlainText string          `json:"plain_text,omitempty"`
-	Href      *string         `json:"href,omitempty"`
+	Type        string          `json:"type"`
+	Text        json.RawMessage `json:"text,omitempty"`
+	Mention     json.RawMessage `json:"mention,omitempty"`
+	Equation    json.RawMessage `json:"equation,omitempty"`
+	Annotations json.RawMessage `json:"annotations,omitempty"`
+	PlainText   string          `json:"plain_text,omitempty"`
+	Href        *string         `json:"href,omitempty"`
 }
 
 // Database represents a Notion database object.

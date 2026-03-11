@@ -30,6 +30,18 @@ func NewDBCmd() *cobra.Command {
 	return cmd
 }
 
+// parseJSONObject parses a JSON string and validates it is a JSON object (not null).
+func parseJSONObject(flag, s string) (map[string]any, error) {
+	var m map[string]any
+	if err := json.Unmarshal([]byte(s), &m); err != nil {
+		return nil, fmt.Errorf("%s: %w", flag, err)
+	}
+	if m == nil {
+		return nil, fmt.Errorf("%s: must be a JSON object, got null", flag)
+	}
+	return m, nil
+}
+
 // parseDBParent parses parent string for database create.
 // Accepts "page_id:id" or "workspace".
 func parseDBParent(s string) (api.Parent, error) {
@@ -75,12 +87,9 @@ func runDBCreate(ctx context.Context, client *api.Client, w io.Writer, format, p
 		return fmt.Errorf("--parent: %w", err)
 	}
 
-	var props map[string]any
-	if err := json.Unmarshal([]byte(propertiesJSON), &props); err != nil {
-		return fmt.Errorf("--properties: %w", err)
-	}
-	if props == nil {
-		return fmt.Errorf("--properties: must be a JSON object, got null")
+	props, err := parseJSONObject("--properties", propertiesJSON)
+	if err != nil {
+		return err
 	}
 
 	req := &api.CreateDatabaseRequest{
@@ -92,9 +101,7 @@ func runDBCreate(ctx context.Context, client *api.Client, w io.Writer, format, p
 			"text": map[string]any{"content": title},
 		}}
 	}
-	if len(props) > 0 {
-		req.Properties = props
-	}
+	req.Properties = props
 
 	db, err := client.CreateDatabase(ctx, req)
 	if err != nil {
@@ -145,9 +152,9 @@ func runDBUpdate(ctx context.Context, client *api.Client, w io.Writer, format, d
 		}}
 	}
 	if propertiesJSON != "" {
-		var props map[string]any
-		if err := json.Unmarshal([]byte(propertiesJSON), &props); err != nil {
-			return fmt.Errorf("--properties: %w", err)
+		props, err := parseJSONObject("--properties", propertiesJSON)
+		if err != nil {
+			return err
 		}
 		req.Properties = props
 	}
@@ -222,14 +229,22 @@ func runDBQuery(ctx context.Context, client *api.Client, w io.Writer, format, da
 	req := &api.QueryDatabaseRequest{}
 
 	if filterJSON != "" {
-		if !json.Valid([]byte(filterJSON)) {
-			return fmt.Errorf("--filter: invalid JSON")
+		var filterObj map[string]any
+		if err := json.Unmarshal([]byte(filterJSON), &filterObj); err != nil {
+			return fmt.Errorf("--filter: must be a JSON object")
+		}
+		if filterObj == nil {
+			return fmt.Errorf("--filter: must be a JSON object, got null")
 		}
 		req.Filter = json.RawMessage(filterJSON)
 	}
 	if sortJSON != "" {
-		if !json.Valid([]byte(sortJSON)) {
-			return fmt.Errorf("--sort: invalid JSON")
+		var sortArr []any
+		if err := json.Unmarshal([]byte(sortJSON), &sortArr); err != nil {
+			return fmt.Errorf("--sort: must be a JSON array")
+		}
+		if sortArr == nil {
+			return fmt.Errorf("--sort: must be a JSON array, got null")
 		}
 		req.Sorts = json.RawMessage(sortJSON)
 	}
