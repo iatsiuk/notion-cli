@@ -164,6 +164,28 @@ func (c *Client) MovePage(ctx context.Context, pageID string, parent Parent) (*P
 	return &p, nil
 }
 
+// PageMarkdownResponse is the response from GET /v1/pages/{page_id}/markdown.
+type PageMarkdownResponse struct {
+	Object          string   `json:"object"`
+	ID              string   `json:"id"`
+	Markdown        string   `json:"markdown"`
+	Truncated       bool     `json:"truncated"`
+	UnknownBlockIDs []string `json:"unknown_block_ids"`
+}
+
+// GetPageMarkdown retrieves the markdown representation of a page.
+func (c *Client) GetPageMarkdown(ctx context.Context, pageID string) (*PageMarkdownResponse, error) {
+	raw, err := c.Get(ctx, "/v1/pages/"+url.PathEscape(pageID)+"/markdown", nil)
+	if err != nil {
+		return nil, err
+	}
+	var r PageMarkdownResponse
+	if err := json.Unmarshal(raw, &r); err != nil {
+		return nil, fmt.Errorf("decode page markdown: %w", err)
+	}
+	return &r, nil
+}
+
 // GetPage retrieves a page by ID.
 func (c *Client) GetPage(ctx context.Context, pageID string) (*Page, error) {
 	raw, err := c.Get(ctx, "/v1/pages/"+url.PathEscape(pageID), nil)

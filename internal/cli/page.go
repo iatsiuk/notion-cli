@@ -27,6 +27,7 @@ func NewPageCmd() *cobra.Command {
 	cmd.AddCommand(NewPageUpdateCmd())
 	cmd.AddCommand(NewPagePropertyCmd())
 	cmd.AddCommand(NewPageMoveCmd())
+	cmd.AddCommand(NewPageMarkdownCmd())
 	return cmd
 }
 
@@ -194,6 +195,27 @@ func runPageMove(ctx context.Context, client *api.Client, w io.Writer, format, p
 		return fmt.Errorf("output format: %w", err)
 	}
 	return f.Format(w, page)
+}
+
+// NewPageMarkdownCmd returns the "page markdown" cobra subcommand.
+func NewPageMarkdownCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "markdown <page_id>",
+		Short: "Get a Notion page as markdown",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return runPageMarkdown(cmd.Context(), newClientFromCfg(), cmd.OutOrStdout(), args[0])
+		},
+	}
+}
+
+func runPageMarkdown(ctx context.Context, client *api.Client, w io.Writer, pageID string) error {
+	result, err := client.GetPageMarkdown(ctx, pageID)
+	if err != nil {
+		return mapAPIError(err)
+	}
+	_, err = fmt.Fprint(w, result.Markdown)
+	return err
 }
 
 func runPageCreate(ctx context.Context, client *api.Client, w io.Writer, format, parentStr, propertiesJSON string) error {
