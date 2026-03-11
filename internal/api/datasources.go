@@ -84,9 +84,8 @@ func (c *Client) GetDataSource(ctx context.Context, dataSourceID string) (*DataS
 
 // UpdateDataSourceRequest is the body for PATCH /v1/data_sources/{id}.
 type UpdateDataSourceRequest struct {
-	Title       []any          `json:"title,omitempty"`
-	Description []any          `json:"description,omitempty"`
-	Properties  map[string]any `json:"properties,omitempty"`
+	Title      []any          `json:"title,omitempty"`
+	Properties map[string]any `json:"properties,omitempty"`
 }
 
 // UpdateDataSource updates an existing data source by ID.

@@ -180,7 +180,7 @@ func TestRunDSCreate_OutputsDataSource(t *testing.T) {
 
 	client := api.NewClient("token", api.WithBaseURL(srv.URL), api.WithHTTPClient(srv.Client()))
 	var buf bytes.Buffer
-	err := runDSCreate(context.Background(), client, &buf, "json", "page_id:page-1", "", "")
+	err := runDSCreate(context.Background(), client, &buf, "json", "database_id:db-1", "", "")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -203,7 +203,7 @@ func TestRunDSCreate_WithTitle(t *testing.T) {
 
 	client := api.NewClient("token", api.WithBaseURL(srv.URL), api.WithHTTPClient(srv.Client()))
 	var buf bytes.Buffer
-	err := runDSCreate(context.Background(), client, &buf, "json", "page_id:page-1", "My DS", "")
+	err := runDSCreate(context.Background(), client, &buf, "json", "database_id:db-1", "My DS", "")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -234,7 +234,7 @@ func TestRunDSCreate_InvalidParent(t *testing.T) {
 func TestRunDSCreate_InvalidProperties(t *testing.T) {
 	t.Parallel()
 	var buf bytes.Buffer
-	err := runDSCreate(context.Background(), nil, &buf, "json", "page_id:page-1", "", "not-json")
+	err := runDSCreate(context.Background(), nil, &buf, "json", "database_id:db-1", "", "not-json")
 	if err == nil {
 		t.Fatal("expected error for invalid properties JSON, got nil")
 	}
@@ -250,7 +250,7 @@ func TestRunDSCreate_APIError(t *testing.T) {
 
 	client := api.NewClient("token", api.WithBaseURL(srv.URL), api.WithHTTPClient(srv.Client()))
 	var buf bytes.Buffer
-	err := runDSCreate(context.Background(), client, &buf, "json", "page_id:page-1", "", "")
+	err := runDSCreate(context.Background(), client, &buf, "json", "database_id:db-1", "", "")
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}
@@ -279,7 +279,7 @@ func TestRunDSUpdate_OutputsDataSource(t *testing.T) {
 
 	client := api.NewClient("token", api.WithBaseURL(srv.URL), api.WithHTTPClient(srv.Client()))
 	var buf bytes.Buffer
-	err := runDSUpdate(context.Background(), client, &buf, "json", "ds-1", "New Title", "", "")
+	err := runDSUpdate(context.Background(), client, &buf, "json", "ds-1", "New Title", "")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -291,7 +291,7 @@ func TestRunDSUpdate_OutputsDataSource(t *testing.T) {
 func TestRunDSUpdate_NoFlags(t *testing.T) {
 	t.Parallel()
 	var buf bytes.Buffer
-	err := runDSUpdate(context.Background(), nil, &buf, "json", "ds-1", "", "", "")
+	err := runDSUpdate(context.Background(), nil, &buf, "json", "ds-1", "", "")
 	if err == nil {
 		t.Fatal("expected error when no flags provided, got nil")
 	}
@@ -313,7 +313,7 @@ func TestRunDSUpdate_MissingArgument(t *testing.T) {
 func TestRunDSUpdate_InvalidProperties(t *testing.T) {
 	t.Parallel()
 	var buf bytes.Buffer
-	err := runDSUpdate(context.Background(), nil, &buf, "json", "ds-1", "", "", "not-json")
+	err := runDSUpdate(context.Background(), nil, &buf, "json", "ds-1", "", "not-json")
 	if err == nil {
 		t.Fatal("expected error for invalid properties JSON, got nil")
 	}
@@ -329,7 +329,7 @@ func TestRunDSUpdate_APIError(t *testing.T) {
 
 	client := api.NewClient("token", api.WithBaseURL(srv.URL), api.WithHTTPClient(srv.Client()))
 	var buf bytes.Buffer
-	err := runDSUpdate(context.Background(), client, &buf, "json", "ds-1", "New Title", "", "")
+	err := runDSUpdate(context.Background(), client, &buf, "json", "ds-1", "New Title", "")
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}

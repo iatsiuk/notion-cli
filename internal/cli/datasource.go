@@ -5,12 +5,30 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/spf13/cobra"
 
 	"notion-cli/internal/api"
 	"notion-cli/internal/output"
 )
+
+// parseDSParent parses parent string for datasource create/update.
+// Accepts "database_id:id" only.
+func parseDSParent(s string) (api.Parent, error) {
+	idx := strings.Index(s, ":")
+	if idx < 0 {
+		return api.Parent{}, fmt.Errorf("invalid parent format %q: expected database_id:id", s)
+	}
+	typ, id := s[:idx], s[idx+1:]
+	if id == "" {
+		return api.Parent{}, fmt.Errorf("invalid parent format %q: id is empty", s)
+	}
+	if typ != "database_id" {
+		return api.Parent{}, fmt.Errorf("unsupported parent type %q: use database_id", typ)
+	}
+	return api.Parent{Type: "database_id", DatabaseID: id}, nil
+}
 
 // NewDSCmd returns the parent "datasource" cobra command with subcommands.
 func NewDSCmd() *cobra.Command {
@@ -92,7 +110,7 @@ func NewDSCreateCmd() *cobra.Command {
 			return runDSCreate(cmd.Context(), newClientFromCfg(), cmd.OutOrStdout(), cfg.Format, parentFlag, titleFlag, propertiesFlag)
 		},
 	}
-	cmd.Flags().StringVar(&parentFlag, "parent", "", "Parent: page_id:id or workspace")
+	cmd.Flags().StringVar(&parentFlag, "parent", "", "Parent: database_id:id")
 	cmd.Flags().StringVar(&titleFlag, "title", "", "Data source title (plain text)")
 	cmd.Flags().StringVar(&propertiesFlag, "properties", "", "Properties as JSON object")
 	_ = cmd.MarkFlagRequired("parent")
@@ -100,7 +118,7 @@ func NewDSCreateCmd() *cobra.Command {
 }
 
 func runDSCreate(ctx context.Context, client *api.Client, w io.Writer, format, parentStr, title, propertiesJSON string) error {
-	parent, err := parseDBParent(parentStr)
+	parent, err := parseDSParent(parentStr)
 	if err != nil {
 		return fmt.Errorf("--parent: %w", err)
 	}
@@ -136,25 +154,24 @@ func runDSCreate(ctx context.Context, client *api.Client, w io.Writer, format, p
 
 // NewDSUpdateCmd returns the "datasource update" cobra subcommand.
 func NewDSUpdateCmd() *cobra.Command {
-	var titleFlag, descriptionFlag, propertiesFlag string
+	var titleFlag, propertiesFlag string
 
 	cmd := &cobra.Command{
 		Use:   "update <data_source_id>",
 		Short: "Update a Notion data source",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return runDSUpdate(cmd.Context(), newClientFromCfg(), cmd.OutOrStdout(), cfg.Format, args[0], titleFlag, descriptionFlag, propertiesFlag)
+			return runDSUpdate(cmd.Context(), newClientFromCfg(), cmd.OutOrStdout(), cfg.Format, args[0], titleFlag, propertiesFlag)
 		},
 	}
 	cmd.Flags().StringVar(&titleFlag, "title", "", "New data source title (plain text)")
-	cmd.Flags().StringVar(&descriptionFlag, "description", "", "New data source description (plain text)")
 	cmd.Flags().StringVar(&propertiesFlag, "properties", "", "Properties as JSON object")
 	return cmd
 }
 
-func runDSUpdate(ctx context.Context, client *api.Client, w io.Writer, format, dataSourceID, title, description, propertiesJSON string) error {
-	if title == "" && description == "" && propertiesJSON == "" {
-		return fmt.Errorf("at least one of --title, --description, --properties must be specified")
+func runDSUpdate(ctx context.Context, client *api.Client, w io.Writer, format, dataSourceID, title, propertiesJSON string) error {
+	if title == "" && propertiesJSON == "" {
+		return fmt.Errorf("at least one of --title, --properties must be specified")
 	}
 
 	req := &api.UpdateDataSourceRequest{}
@@ -162,12 +179,6 @@ func runDSUpdate(ctx context.Context, client *api.Client, w io.Writer, format, d
 		req.Title = []any{map[string]any{
 			"type": "text",
 			"text": map[string]any{"content": title},
-		}}
-	}
-	if description != "" {
-		req.Description = []any{map[string]any{
-			"type": "text",
-			"text": map[string]any{"content": description},
 		}}
 	}
 	if propertiesJSON != "" {

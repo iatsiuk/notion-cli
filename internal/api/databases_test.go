@@ -151,7 +151,7 @@ func TestListDatabases(t *testing.T) {
 			http.Error(w, "bad body", http.StatusBadRequest)
 			return
 		}
-		if payload.Filter.Value != "data_source" || payload.Filter.Property != "object" {
+		if payload.Filter.Value != "database" || payload.Filter.Property != "object" {
 			http.Error(w, "bad filter", http.StatusBadRequest)
 			return
 		}
