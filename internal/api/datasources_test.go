@@ -156,3 +156,121 @@ func TestDataSourceDeserialization(t *testing.T) {
 		t.Error("IsInline = true, want false")
 	}
 }
+
+func TestCreateDataSource(t *testing.T) {
+	t.Parallel()
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v1/data_sources" || r.Method != http.MethodPost {
+			http.Error(w, "not found", http.StatusNotFound)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(dataSourceJSON))
+	}))
+	defer srv.Close()
+
+	client := api.NewClient("token", api.WithBaseURL(srv.URL))
+	req := &api.CreateDataSourceRequest{
+		Parent: api.Parent{Type: "database_id", DatabaseID: "db-1"},
+	}
+	ds, err := client.CreateDataSource(t.Context(), req)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if ds.ID != "ds-1" {
+		t.Errorf("ID = %q, want %q", ds.ID, "ds-1")
+	}
+}
+
+func TestCreateDataSourceError(t *testing.T) {
+	t.Parallel()
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Error(w, `{"code":"unauthorized","message":"API token is invalid."}`, http.StatusUnauthorized)
+	}))
+	defer srv.Close()
+
+	client := api.NewClient("token", api.WithBaseURL(srv.URL))
+	_, err := client.CreateDataSource(t.Context(), &api.CreateDataSourceRequest{})
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+}
+
+func TestGetDataSource(t *testing.T) {
+	t.Parallel()
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v1/data_sources/ds-1" || r.Method != http.MethodGet {
+			http.Error(w, "not found", http.StatusNotFound)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(dataSourceJSON))
+	}))
+	defer srv.Close()
+
+	client := api.NewClient("token", api.WithBaseURL(srv.URL))
+	ds, err := client.GetDataSource(t.Context(), "ds-1")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if ds.ID != "ds-1" {
+		t.Errorf("ID = %q, want %q", ds.ID, "ds-1")
+	}
+}
+
+func TestGetDataSourceNotFound(t *testing.T) {
+	t.Parallel()
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Error(w, `{"code":"object_not_found","message":"not found"}`, http.StatusNotFound)
+	}))
+	defer srv.Close()
+
+	client := api.NewClient("token", api.WithBaseURL(srv.URL))
+	_, err := client.GetDataSource(t.Context(), "ds-missing")
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+}
+
+func TestUpdateDataSource(t *testing.T) {
+	t.Parallel()
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v1/data_sources/ds-1" || r.Method != http.MethodPatch {
+			http.Error(w, "not found", http.StatusNotFound)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(dataSourceJSON))
+	}))
+	defer srv.Close()
+
+	client := api.NewClient("token", api.WithBaseURL(srv.URL))
+	req := &api.UpdateDataSourceRequest{}
+	ds, err := client.UpdateDataSource(t.Context(), "ds-1", req)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if ds.ID != "ds-1" {
+		t.Errorf("ID = %q, want %q", ds.ID, "ds-1")
+	}
+}
+
+func TestUpdateDataSourceError(t *testing.T) {
+	t.Parallel()
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Error(w, `{"code":"unauthorized","message":"API token is invalid."}`, http.StatusUnauthorized)
+	}))
+	defer srv.Close()
+
+	client := api.NewClient("token", api.WithBaseURL(srv.URL))
+	_, err := client.UpdateDataSource(t.Context(), "ds-1", &api.UpdateDataSourceRequest{})
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+}

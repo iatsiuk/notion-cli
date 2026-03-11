@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/url"
 )
 
 // DataSource represents a Notion data source object.
@@ -25,6 +26,59 @@ type DataSource struct {
 	Cover          json.RawMessage            `json:"cover"`
 	URL            string                     `json:"url"`
 	PublicURL      *string                    `json:"public_url"`
+}
+
+// CreateDataSourceRequest is the body for POST /v1/data_sources.
+type CreateDataSourceRequest struct {
+	Parent     Parent         `json:"parent"`
+	Title      []any          `json:"title,omitempty"`
+	Properties map[string]any `json:"properties,omitempty"`
+}
+
+// CreateDataSource creates a new data source.
+func (c *Client) CreateDataSource(ctx context.Context, req *CreateDataSourceRequest) (*DataSource, error) {
+	raw, err := c.Post(ctx, "/v1/data_sources", req)
+	if err != nil {
+		return nil, err
+	}
+	var ds DataSource
+	if err := json.Unmarshal(raw, &ds); err != nil {
+		return nil, fmt.Errorf("decode data source: %w", err)
+	}
+	return &ds, nil
+}
+
+// GetDataSource retrieves a data source by ID.
+func (c *Client) GetDataSource(ctx context.Context, dataSourceID string) (*DataSource, error) {
+	raw, err := c.Get(ctx, "/v1/data_sources/"+url.PathEscape(dataSourceID), nil)
+	if err != nil {
+		return nil, err
+	}
+	var ds DataSource
+	if err := json.Unmarshal(raw, &ds); err != nil {
+		return nil, fmt.Errorf("decode data source: %w", err)
+	}
+	return &ds, nil
+}
+
+// UpdateDataSourceRequest is the body for PATCH /v1/data_sources/{id}.
+type UpdateDataSourceRequest struct {
+	Title       []any          `json:"title,omitempty"`
+	Description []any          `json:"description,omitempty"`
+	Properties  map[string]any `json:"properties,omitempty"`
+}
+
+// UpdateDataSource updates an existing data source by ID.
+func (c *Client) UpdateDataSource(ctx context.Context, dataSourceID string, req *UpdateDataSourceRequest) (*DataSource, error) {
+	raw, err := c.Patch(ctx, "/v1/data_sources/"+url.PathEscape(dataSourceID), req)
+	if err != nil {
+		return nil, err
+	}
+	var ds DataSource
+	if err := json.Unmarshal(raw, &ds); err != nil {
+		return nil, fmt.Errorf("decode data source: %w", err)
+	}
+	return &ds, nil
 }
 
 // ListDataSources returns all data sources accessible to the integration via the search API.

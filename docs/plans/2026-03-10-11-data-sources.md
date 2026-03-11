@@ -35,13 +35,13 @@
 - [x] run tests - must pass before next task
 
 ### Task 2: Create, get, update API methods
-- [ ] write tests for CreateDataSource, GetDataSource, UpdateDataSource:
+- [x] write tests for CreateDataSource, GetDataSource, UpdateDataSource:
   - create returns new data source
   - get returns data source by ID
   - update modifies data source
   - error handling for each
-- [ ] implement all three methods on Client
-- [ ] run tests - must pass before next task
+- [x] implement all three methods on Client
+- [x] run tests - must pass before next task
 
 ### Task 3: Query and templates API methods
 - [ ] write tests for QueryDataSource and GetDataSourceTemplates:
