@@ -471,13 +471,13 @@ func TestRunFileUpload_SkipsCompleteWhenAlreadyUploaded(t *testing.T) {
 	}`
 
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
 		if r.URL.Path == "/v1/file_uploads/fu-1/complete" {
 			completeCalled.Store(true)
 			w.WriteHeader(http.StatusConflict)
 			_, _ = w.Write([]byte(`{"status":409,"code":"conflict","message":"already uploaded"}`))
 			return
 		}
-		w.Header().Set("Content-Type", "application/json")
 		if r.URL.Path == "/v1/file_uploads/fu-1/send" {
 			_, _ = w.Write([]byte(uploadedJSON))
 			return

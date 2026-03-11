@@ -115,6 +115,7 @@ func (c *Client) SendFileContent(ctx context.Context, fileUploadID, filename, co
 
 	raw, err := c.do(req)
 	if err != nil {
+		_ = pr.CloseWithError(err)
 		return nil, err
 	}
 	var fu FileUpload
