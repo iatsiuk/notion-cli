@@ -50,6 +50,7 @@ func NewRootCmd() *cobra.Command {
 
 	cmd.AddCommand(NewStatusCmd())
 	cmd.AddCommand(NewUserCmd())
+	cmd.AddCommand(NewPageCmd())
 
 	return cmd
 }

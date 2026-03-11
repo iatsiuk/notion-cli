@@ -23,6 +23,25 @@ notion-cli search "Meeting notes"
 # get a page
 notion-cli page get <page-id>
 
+# create a page
+notion-cli page create --parent database_id:<db-id> --properties '{"Name":{"title":[{"text":{"content":"My page"}}]}}'
+
+# update a page
+notion-cli page update <page-id> --properties '{"Name":{"title":[{"text":{"content":"New title"}}]}}'
+
+# archive / unarchive a page
+notion-cli page update <page-id> --archive
+notion-cli page update <page-id> --unarchive
+
+# get a page property value
+notion-cli page property <page-id> <property-id>
+
+# move a page to a new parent
+notion-cli page move <page-id> --parent page_id:<parent-page-id>
+
+# get page content as markdown (raw text, ignores --format)
+notion-cli page markdown <page-id>
+
 # list databases
 notion-cli db list
 
