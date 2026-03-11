@@ -264,6 +264,19 @@ func TestRunBlockUpdate_InvalidJSON(t *testing.T) {
 	}
 }
 
+func TestRunBlockUpdate_NoOp(t *testing.T) {
+	t.Parallel()
+	client := api.NewClient("token")
+	var buf bytes.Buffer
+	err := runBlockUpdate(context.Background(), client, &buf, "json", "block-1", "{}", false, false)
+	if err == nil {
+		t.Fatal("expected error for no-op update, got nil")
+	}
+	if err.Error() == "" {
+		t.Fatal("expected non-empty error message")
+	}
+}
+
 func TestRunBlockUpdate_MissingArgument(t *testing.T) {
 	t.Parallel()
 	cmd := NewBlockUpdateCmd()
@@ -284,7 +297,7 @@ func TestRunBlockUpdate_NotFound(t *testing.T) {
 
 	client := api.NewClient("token", api.WithBaseURL(srv.URL), api.WithHTTPClient(srv.Client()))
 	var buf bytes.Buffer
-	err := runBlockUpdate(context.Background(), client, &buf, "json", "bad-id", "{}", false, false)
+	err := runBlockUpdate(context.Background(), client, &buf, "json", "bad-id", "{}", true, false)
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}

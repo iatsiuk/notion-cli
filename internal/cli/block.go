@@ -164,6 +164,10 @@ func runBlockUpdate(ctx context.Context, client *api.Client, w io.Writer, format
 		return fmt.Errorf("--data: %w", err)
 	}
 
+	if len(typeContent) == 0 && !archive && !unarchive {
+		return fmt.Errorf("provide at least one of --data (non-empty), --archive, or --unarchive")
+	}
+
 	req := &api.UpdateBlockRequest{}
 	if len(typeContent) > 0 {
 		req.TypeContent = typeContent
