@@ -272,6 +272,40 @@ func TestListComments_Error(t *testing.T) {
 	}
 }
 
+func TestComment_Deserialization_WithLink(t *testing.T) {
+	t.Parallel()
+
+	const withLinkJSON = `{
+		"object": "comment",
+		"id": "comment-2",
+		"parent": {"type": "page_id", "page_id": "page-1"},
+		"discussion_id": "discussion-1",
+		"rich_text": [{"type": "text", "text": {"content": "click here", "link": {"url": "https://example.com"}}, "plain_text": "click here"}],
+		"created_time": "2024-01-01T00:00:00.000Z",
+		"last_edited_time": "2024-01-01T00:00:00.000Z",
+		"created_by": {"object": "user", "id": "user-1"}
+	}`
+
+	var c api.Comment
+	if err := json.Unmarshal([]byte(withLinkJSON), &c); err != nil {
+		t.Fatalf("unmarshal error: %v", err)
+	}
+
+	if len(c.RichText) != 1 {
+		t.Fatalf("len(RichText) = %d, want 1", len(c.RichText))
+	}
+	text := c.RichText[0].Text
+	if text == nil {
+		t.Fatal("RichText[0].Text is nil")
+	}
+	if text.Link == nil {
+		t.Fatal("RichText[0].Text.Link is nil, want non-nil")
+	}
+	if text.Link.URL != "https://example.com" {
+		t.Errorf("Link.URL = %q, want %q", text.Link.URL, "https://example.com")
+	}
+}
+
 func TestGetComment_ReturnsComment(t *testing.T) {
 	t.Parallel()
 

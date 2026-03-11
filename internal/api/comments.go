@@ -30,10 +30,15 @@ type RichTextItem struct {
 	Equation  json.RawMessage `json:"equation,omitempty"`
 }
 
+// RichTextLink is the link object in a rich_text text item.
+type RichTextLink struct {
+	URL string `json:"url"`
+}
+
 // RichTextText is the text content of a rich_text item.
 type RichTextText struct {
-	Content string  `json:"content"`
-	Link    *string `json:"link,omitempty"`
+	Content string        `json:"content"`
+	Link    *RichTextLink `json:"link,omitempty"`
 }
 
 // Comment represents a Notion comment object.
