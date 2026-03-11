@@ -42,12 +42,12 @@
 - [x] run tests - must pass before next task
 
 ### Task 3: Send file content API method
-- [ ] write tests for SendFileContent:
+- [x] write tests for SendFileContent:
   - sends file as multipart/form-data
   - handles large files
   - error handling
-- [ ] implement SendFileContent method on Client (POST /v1/file_uploads/{id}/send)
-- [ ] run tests - must pass before next task
+- [x] implement SendFileContent method on Client (POST /v1/file_uploads/{id}/send)
+- [x] run tests - must pass before next task
 
 ### Task 4: Complete file upload API method
 - [ ] write tests for CompleteFileUpload:

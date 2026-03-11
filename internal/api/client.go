@@ -124,7 +124,10 @@ func (c *Client) sendWithBody(ctx context.Context, method, path string, body any
 func (c *Client) setHeaders(req *http.Request) {
 	req.Header.Set("Authorization", "Bearer "+c.token)
 	req.Header.Set("Notion-Version", NotionVersion)
-	req.Header.Set("Content-Type", "application/json")
+	// preserve Content-Type if already set (e.g. multipart/form-data)
+	if req.Header.Get("Content-Type") == "" {
+		req.Header.Set("Content-Type", "application/json")
+	}
 }
 
 func (c *Client) do(req *http.Request) (json.RawMessage, error) {
