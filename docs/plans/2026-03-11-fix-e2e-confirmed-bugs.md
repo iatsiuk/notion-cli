@@ -63,10 +63,10 @@ Fix 3 confirmed bugs from e2e testing (`e2e-errors.md`):
 - [x] run tests -- confirm the skip-complete test FAILS (current code always calls complete)
 
 ### Task 4: File upload -- fix runFileUpload to check status before complete
-- [ ] modify `SendFileContent()` (`internal/api/files.go`) to return `*FileUpload` (parse response body) instead of just error, so caller can check status
-- [ ] in `runFileUpload()` (`internal/cli/file.go:200-209`), after send: check returned status, skip complete if status is already "uploaded"
-- [ ] run tests from Task 3 -- must pass
-- [ ] run `make build` -- linter must pass
+- [x] modify `SendFileContent()` (`internal/api/files.go`) to return `*FileUpload` (parse response body) instead of just error, so caller can check status
+- [x] in `runFileUpload()` (`internal/cli/file.go:200-209`), after send: check returned status, skip complete if status is already "uploaded"
+- [x] run tests from Task 3 -- must pass
+- [x] run `make build` -- linter must pass
 
 ### Task 5: Block append -- write failing test for TTY stdin detection
 - [ ] add `isInputTerminal(r io.Reader) bool` helper test in `internal/cli/block_test.go` -- test with `*os.File` (char device) returns true, `*strings.Reader` returns false

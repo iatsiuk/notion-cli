@@ -198,14 +198,18 @@ func runFileUpload(ctx context.Context, client *api.Client, w io.Writer, format,
 	}
 
 	uploadID := fu.ID
-	_, err = client.SendFileContent(ctx, uploadID, filename, contentType, f, 0)
+	sent, err := client.SendFileContent(ctx, uploadID, filename, contentType, f, 0)
 	if err != nil {
 		return fmt.Errorf("send file (upload ID: %s): %w", uploadID, mapAPIError(err))
 	}
 
-	fu, err = client.CompleteFileUpload(ctx, uploadID)
-	if err != nil {
-		return fmt.Errorf("complete upload (upload ID: %s): %w", uploadID, mapAPIError(err))
+	if sent.Status != "uploaded" {
+		fu, err = client.CompleteFileUpload(ctx, uploadID)
+		if err != nil {
+			return fmt.Errorf("complete upload (upload ID: %s): %w", uploadID, mapAPIError(err))
+		}
+	} else {
+		fu = sent
 	}
 
 	out, err := output.New(format, isTerminal(w))
