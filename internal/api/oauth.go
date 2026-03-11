@@ -23,8 +23,8 @@ type OAuthToken struct {
 	RefreshToken         *string    `json:"refresh_token,omitempty"` //nolint:gosec
 	BotID                string     `json:"bot_id"`
 	WorkspaceID          string     `json:"workspace_id"`
-	WorkspaceName        *string    `json:"workspace_name"`
-	WorkspaceIcon        *string    `json:"workspace_icon"`
+	WorkspaceName        *string    `json:"workspace_name,omitempty"`
+	WorkspaceIcon        *string    `json:"workspace_icon,omitempty"`
 	DuplicatedTemplateID *string    `json:"duplicated_template_id,omitempty"`
 	RequestID            string     `json:"request_id,omitempty"`
 	Owner                OAuthOwner `json:"owner"`
@@ -103,7 +103,7 @@ func (c *Client) RevokeToken(ctx context.Context, clientID, clientSecret, token 
 }
 
 // oauthPost sends a POST request with Basic auth and JSON body.
-func (c *Client) oauthPost(ctx context.Context, clientID, clientSecret, path string, body interface{}) ([]byte, error) {
+func (c *Client) oauthPost(ctx context.Context, clientID, clientSecret, path string, body any) (json.RawMessage, error) {
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(body); err != nil {
 		return nil, fmt.Errorf("encode body: %w", err)
