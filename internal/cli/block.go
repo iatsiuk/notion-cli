@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"os"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -114,6 +115,19 @@ func NewBlockAppendCmd() *cobra.Command {
 	}
 	cmd.Flags().StringVar(&childrenFlag, "children", "[]", "Child blocks as JSON array")
 	return cmd
+}
+
+// isInputTerminal reports whether r is a character device (TTY).
+func isInputTerminal(r io.Reader) bool {
+	f, ok := r.(*os.File)
+	if !ok {
+		return false
+	}
+	fi, err := f.Stat()
+	if err != nil {
+		return false
+	}
+	return fi.Mode()&os.ModeCharDevice != 0
 }
 
 func runBlockAppend(ctx context.Context, client *api.Client, w io.Writer, stdin io.Reader, format, blockID, childrenJSON string, childrenFlagSet bool) error {

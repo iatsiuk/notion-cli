@@ -69,9 +69,9 @@ Fix 3 confirmed bugs from e2e testing (`e2e-errors.md`):
 - [x] run `make build` -- linter must pass
 
 ### Task 5: Block append -- write failing test for TTY stdin detection
-- [ ] add `isInputTerminal(r io.Reader) bool` helper test in `internal/cli/block_test.go` -- test with `*os.File` (char device) returns true, `*strings.Reader` returns false
-- [ ] add test `TestRunBlockAppend_ErrorsOnTTYStdin` -- pass `*os.File` pointing to /dev/tty (or mock), expect immediate error "provide --children flag or pipe JSON array via stdin"
-- [ ] run tests -- confirm TTY test FAILS (current code hangs or reads empty)
+- [x] add `isInputTerminal(r io.Reader) bool` helper test in `internal/cli/block_test.go` -- test with `*os.File` (char device) returns true, `*strings.Reader` returns false
+- [x] add test `TestRunBlockAppend_ErrorsOnTTYStdin` -- pass `*os.File` pointing to /dev/tty (or mock), expect immediate error "provide --children flag or pipe JSON array via stdin"
+- [x] run tests -- confirm TTY test FAILS (current code hangs or reads empty)
 
 ### Task 6: Block append -- add TTY check before stdin read
 - [ ] add `isInputTerminal(r io.Reader) bool` helper in `internal/cli/block.go` (similar to existing `isTerminal` but for `io.Reader`)
