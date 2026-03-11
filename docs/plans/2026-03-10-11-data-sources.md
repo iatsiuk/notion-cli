@@ -54,14 +54,14 @@
 - [x] run tests - must pass before next task
 
 ### Task 4: Data source CLI commands
-- [ ] write tests for all datasource subcommands in `internal/cli/datasource_test.go`
-- [ ] implement `datasource list` command
-- [ ] implement `datasource create` command
-- [ ] implement `datasource get` command
-- [ ] implement `datasource update` command
-- [ ] implement `datasource query` command with --filter flag
-- [ ] implement `datasource templates` command
-- [ ] run tests - must pass before next task
+- [x] write tests for all datasource subcommands in `internal/cli/datasource_test.go`
+- [x] implement `datasource list` command
+- [x] implement `datasource create` command
+- [x] implement `datasource get` command
+- [x] implement `datasource update` command
+- [x] implement `datasource query` command with --filter flag
+- [x] implement `datasource templates` command
+- [x] run tests - must pass before next task
 
 ### Task 5: Verify acceptance criteria
 - [ ] verify all datasource commands work
