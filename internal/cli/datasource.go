@@ -114,6 +114,7 @@ func NewDSCreateCmd() *cobra.Command {
 	cmd.Flags().StringVar(&titleFlag, "title", "", "Data source title (plain text)")
 	cmd.Flags().StringVar(&propertiesFlag, "properties", "", "Properties as JSON object")
 	_ = cmd.MarkFlagRequired("parent")
+	_ = cmd.MarkFlagRequired("properties")
 	return cmd
 }
 
