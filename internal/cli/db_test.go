@@ -399,7 +399,7 @@ func TestRunDBUpdate_APIError(t *testing.T) {
 
 	client := api.NewClient("token", api.WithBaseURL(srv.URL), api.WithHTTPClient(srv.Client()))
 	var buf bytes.Buffer
-	err := runDBUpdate(context.Background(), client, &buf, "json", "db-1", "", "", "")
+	err := runDBUpdate(context.Background(), client, &buf, "json", "db-1", "New Title", "", "")
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}
@@ -410,6 +410,18 @@ func TestRunDBUpdate_APIError(t *testing.T) {
 	}
 	if cliErr.Code != ExitAPI {
 		t.Errorf("expected exit code %d, got %d", ExitAPI, cliErr.Code)
+	}
+}
+
+func TestRunDBUpdate_NoFlags(t *testing.T) {
+	t.Parallel()
+	var buf bytes.Buffer
+	err := runDBUpdate(context.Background(), nil, &buf, "json", "db-1", "", "", "")
+	if err == nil {
+		t.Fatal("expected error when no flags provided, got nil")
+	}
+	if !strings.Contains(err.Error(), "at least one of") {
+		t.Errorf("unexpected error message: %v", err)
 	}
 }
 

@@ -127,6 +127,9 @@ func NewDBUpdateCmd() *cobra.Command {
 }
 
 func runDBUpdate(ctx context.Context, client *api.Client, w io.Writer, format, databaseID, title, description, propertiesJSON string) error {
+	if title == "" && description == "" && propertiesJSON == "" {
+		return fmt.Errorf("at least one of --title, --description, --properties must be specified")
+	}
 	req := &api.UpdateDatabaseRequest{}
 
 	if title != "" {
