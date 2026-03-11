@@ -40,6 +40,28 @@ type Page struct {
 	Properties     map[string]json.RawMessage `json:"properties"`
 }
 
+// CreatePageRequest is the body for creating a new page.
+type CreatePageRequest struct {
+	Parent     Parent         `json:"parent"`
+	Properties map[string]any `json:"properties"`
+	Children   []any          `json:"children,omitempty"`
+	Icon       any            `json:"icon,omitempty"`
+	Cover      any            `json:"cover,omitempty"`
+}
+
+// CreatePage creates a new page.
+func (c *Client) CreatePage(ctx context.Context, req *CreatePageRequest) (*Page, error) {
+	raw, err := c.Post(ctx, "/v1/pages", req)
+	if err != nil {
+		return nil, err
+	}
+	var p Page
+	if err := json.Unmarshal(raw, &p); err != nil {
+		return nil, fmt.Errorf("decode page: %w", err)
+	}
+	return &p, nil
+}
+
 // GetPage retrieves a page by ID.
 func (c *Client) GetPage(ctx context.Context, pageID string) (*Page, error) {
 	raw, err := c.Get(ctx, "/v1/pages/"+url.PathEscape(pageID), nil)

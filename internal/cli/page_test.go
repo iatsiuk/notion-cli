@@ -141,3 +141,96 @@ func TestRunPageGet_AuthError(t *testing.T) {
 		t.Errorf("expected exit code %d, got %d", ExitAuth, cliErr.Code)
 	}
 }
+
+func TestRunPageCreate_OutputsPage(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v1/pages" || r.Method != http.MethodPost {
+			http.Error(w, "not found", http.StatusNotFound)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(testPageJSON))
+	}))
+	defer srv.Close()
+
+	client := api.NewClient("token", api.WithBaseURL(srv.URL), api.WithHTTPClient(srv.Client()))
+	var buf bytes.Buffer
+	err := runPageCreate(context.Background(), client, &buf, "json", "page_id:parent-1", `{}`)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(buf.String(), "page-1") {
+		t.Errorf("output missing page ID, got: %s", buf.String())
+	}
+}
+
+func TestRunPageCreate_InvalidParentFormat(t *testing.T) {
+	t.Parallel()
+	client := api.NewClient("token")
+	var buf bytes.Buffer
+	err := runPageCreate(context.Background(), client, &buf, "json", "invalid", `{}`)
+	if err == nil {
+		t.Fatal("expected error for invalid parent format, got nil")
+	}
+}
+
+func TestRunPageCreate_InvalidPropertiesJSON(t *testing.T) {
+	t.Parallel()
+	client := api.NewClient("token")
+	var buf bytes.Buffer
+	err := runPageCreate(context.Background(), client, &buf, "json", "page_id:parent-1", `not-json`)
+	if err == nil {
+		t.Fatal("expected error for invalid JSON, got nil")
+	}
+}
+
+func TestRunPageCreate_WithDatabaseParent(t *testing.T) {
+	t.Parallel()
+	var gotParent map[string]any
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var body map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			http.Error(w, "bad", http.StatusBadRequest)
+			return
+		}
+		gotParent, _ = body["parent"].(map[string]any)
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(testPageJSON))
+	}))
+	defer srv.Close()
+
+	client := api.NewClient("token", api.WithBaseURL(srv.URL), api.WithHTTPClient(srv.Client()))
+	var buf bytes.Buffer
+	err := runPageCreate(context.Background(), client, &buf, "json", "database_id:db-1", `{}`)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if gotParent["database_id"] != "db-1" {
+		t.Errorf("database_id = %v, want %q", gotParent["database_id"], "db-1")
+	}
+}
+
+func TestRunPageCreate_APIError(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusBadRequest)
+		_, _ = w.Write([]byte(`{"status":400,"code":"validation_error","message":"invalid parent"}`))
+	}))
+	defer srv.Close()
+
+	client := api.NewClient("token", api.WithBaseURL(srv.URL), api.WithHTTPClient(srv.Client()))
+	var buf bytes.Buffer
+	err := runPageCreate(context.Background(), client, &buf, "json", "page_id:parent-1", `{}`)
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+
+	var cliErr *CLIError
+	if !errors.As(err, &cliErr) {
+		t.Fatalf("expected CLIError, got %T: %v", err, err)
+	}
+	if cliErr.Code != ExitAPI {
+		t.Errorf("expected exit code %d, got %d", ExitAPI, cliErr.Code)
+	}
+}

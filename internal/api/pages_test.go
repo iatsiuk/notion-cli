@@ -185,3 +185,140 @@ func TestGetPage_AuthError(t *testing.T) {
 		t.Errorf("Status = %d, want 401", apiErr.Status)
 	}
 }
+
+func TestCreatePage_WithDatabaseParent(t *testing.T) {
+	t.Parallel()
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v1/pages" || r.Method != http.MethodPost {
+			http.Error(w, "not found", http.StatusNotFound)
+			return
+		}
+		var body map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			http.Error(w, "bad request", http.StatusBadRequest)
+			return
+		}
+		parent, _ := body["parent"].(map[string]any)
+		if parent["database_id"] != "db-1" {
+			http.Error(w, "wrong parent", http.StatusBadRequest)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(pageJSON))
+	}))
+	defer srv.Close()
+
+	client := api.NewClient("token", api.WithBaseURL(srv.URL))
+	req := &api.CreatePageRequest{
+		Parent:     api.Parent{Type: "database_id", DatabaseID: "db-1"},
+		Properties: map[string]any{"title": map[string]any{}},
+	}
+	page, err := client.CreatePage(t.Context(), req)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if page.ID != "page-1" {
+		t.Errorf("ID = %q, want %q", page.ID, "page-1")
+	}
+}
+
+func TestCreatePage_WithPageParent(t *testing.T) {
+	t.Parallel()
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v1/pages" || r.Method != http.MethodPost {
+			http.Error(w, "not found", http.StatusNotFound)
+			return
+		}
+		var body map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			http.Error(w, "bad request", http.StatusBadRequest)
+			return
+		}
+		parent, _ := body["parent"].(map[string]any)
+		if parent["page_id"] != "parent-page-1" {
+			http.Error(w, "wrong parent", http.StatusBadRequest)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(pageJSON))
+	}))
+	defer srv.Close()
+
+	client := api.NewClient("token", api.WithBaseURL(srv.URL))
+	req := &api.CreatePageRequest{
+		Parent:     api.Parent{Type: "page_id", PageID: "parent-page-1"},
+		Properties: map[string]any{},
+	}
+	page, err := client.CreatePage(t.Context(), req)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if page.ID != "page-1" {
+		t.Errorf("ID = %q, want %q", page.ID, "page-1")
+	}
+}
+
+func TestCreatePage_SendsPropertiesPayload(t *testing.T) {
+	t.Parallel()
+
+	var gotBody map[string]any
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if err := json.NewDecoder(r.Body).Decode(&gotBody); err != nil {
+			http.Error(w, "bad request", http.StatusBadRequest)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(pageJSON))
+	}))
+	defer srv.Close()
+
+	props := map[string]any{
+		"Name": map[string]any{"title": []any{map[string]any{"text": map[string]any{"content": "Test"}}}},
+	}
+	client := api.NewClient("token", api.WithBaseURL(srv.URL))
+	req := &api.CreatePageRequest{
+		Parent:     api.Parent{Type: "database_id", DatabaseID: "db-1"},
+		Properties: props,
+	}
+	_, err := client.CreatePage(t.Context(), req)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	bodyProps, ok := gotBody["properties"].(map[string]any)
+	if !ok {
+		t.Fatalf("properties missing in request body")
+	}
+	if _, ok := bodyProps["Name"]; !ok {
+		t.Error("Name property missing in request body")
+	}
+}
+
+func TestCreatePage_Error(t *testing.T) {
+	t.Parallel()
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusBadRequest)
+		_, _ = w.Write([]byte(`{"status":400,"code":"validation_error","message":"invalid parent"}`))
+	}))
+	defer srv.Close()
+
+	client := api.NewClient("token", api.WithBaseURL(srv.URL))
+	req := &api.CreatePageRequest{
+		Parent: api.Parent{Type: "database_id", DatabaseID: "bad"},
+	}
+	_, err := client.CreatePage(t.Context(), req)
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+
+	var apiErr *api.APIError
+	if !api.AsAPIError(err, &apiErr) {
+		t.Fatalf("expected *APIError, got %T: %v", err, err)
+	}
+	if apiErr.Status != 400 {
+		t.Errorf("Status = %d, want 400", apiErr.Status)
+	}
+}
