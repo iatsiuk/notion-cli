@@ -22,12 +22,13 @@ func (c *Client) GetComment(ctx context.Context, commentID string) (*Comment, er
 
 // RichTextItem is a single element of rich_text array.
 type RichTextItem struct {
-	Type      string          `json:"type"`
-	Text      *RichTextText   `json:"text,omitempty"`
-	PlainText string          `json:"plain_text,omitempty"`
-	Href      *string         `json:"href,omitempty"`
-	Mention   json.RawMessage `json:"mention,omitempty"`
-	Equation  json.RawMessage `json:"equation,omitempty"`
+	Type        string          `json:"type"`
+	Text        *RichTextText   `json:"text,omitempty"`
+	PlainText   string          `json:"plain_text,omitempty"`
+	Href        *string         `json:"href,omitempty"`
+	Annotations json.RawMessage `json:"annotations,omitempty"`
+	Mention     json.RawMessage `json:"mention,omitempty"`
+	Equation    json.RawMessage `json:"equation,omitempty"`
 }
 
 // RichTextLink is the link object in a rich_text text item.
@@ -43,14 +44,15 @@ type RichTextText struct {
 
 // Comment represents a Notion comment object.
 type Comment struct {
-	Object         string         `json:"object"`
-	ID             string         `json:"id"`
-	Parent         Parent         `json:"parent"`
-	DiscussionID   string         `json:"discussion_id"`
-	RichText       []RichTextItem `json:"rich_text"`
-	CreatedTime    string         `json:"created_time"`
-	LastEditedTime string         `json:"last_edited_time"`
-	CreatedBy      PartialUser    `json:"created_by"`
+	Object         string          `json:"object"`
+	ID             string          `json:"id"`
+	Parent         Parent          `json:"parent"`
+	DiscussionID   string          `json:"discussion_id"`
+	RichText       []RichTextItem  `json:"rich_text"`
+	CreatedTime    string          `json:"created_time"`
+	LastEditedTime string          `json:"last_edited_time"`
+	CreatedBy      PartialUser     `json:"created_by"`
+	DisplayName    json.RawMessage `json:"display_name,omitempty"`
 }
 
 // CreateCommentRequest is the body for creating a comment.
