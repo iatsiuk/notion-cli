@@ -76,3 +76,21 @@ The default format is `auto`: JSON for interactive terminals, JSON Lines for pip
 | 1    | Connection or network error |
 | 2    | API error                   |
 | 3    | Authentication error        |
+
+## Search
+
+Search across all pages and databases in the workspace.
+
+```
+notion-cli search <query> [flags]
+
+Flags:
+    --type string   Filter by object type: page or database
+    --sort string   Sort direction: ascending or descending
+```
+
+```
+notion-cli search "project roadmap"
+notion-cli search "meeting notes" --type page
+notion-cli search "team wiki" --type database --sort descending
+```

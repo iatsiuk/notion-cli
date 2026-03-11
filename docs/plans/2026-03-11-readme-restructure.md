@@ -40,7 +40,7 @@
 - [x] write Exit Codes table
 
 ### Task 3: Write Search command section
-- [ ] write `search` command with flags (--type, --sort) and examples
+- [x] write `search` command with flags (--type, --sort) and examples
 
 ### Task 4: Write Page Commands section
 - [ ] write `page get` with flags and example
