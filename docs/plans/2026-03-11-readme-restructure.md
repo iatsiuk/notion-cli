@@ -82,12 +82,12 @@
 - [x] write `file upload` (one-step) with example
 
 ### Task 10: Write Data Source Commands section
-- [ ] write `datasource list` with example
-- [ ] write `datasource get` with example
-- [ ] write `datasource create` with flags and example
-- [ ] write `datasource update` with flags and example
-- [ ] write `datasource query` with flags and example
-- [ ] write `datasource templates` with example
+- [x] write `datasource list` with example
+- [x] write `datasource get` with example
+- [x] write `datasource create` with flags and example
+- [x] write `datasource update` with flags and example
+- [x] write `datasource query` with flags and example
+- [x] write `datasource templates` with example
 
 ### Task 11: Write OAuth Commands section
 - [ ] write `oauth token` with flags and example

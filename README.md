@@ -501,3 +501,92 @@ notion-cli file upload <file_path>
 notion-cli file upload ./report.pdf
 notion-cli file upload ./image.png
 ```
+
+## Data Source Commands
+
+### datasource list
+
+List accessible Notion data sources.
+
+```
+notion-cli datasource list
+```
+
+```
+notion-cli datasource list
+notion-cli datasource list --format table
+```
+
+### datasource get
+
+Get a Notion data source by ID.
+
+```
+notion-cli datasource get <data_source_id>
+```
+
+```
+notion-cli datasource get abc123
+```
+
+### datasource create
+
+Create a new Notion data source.
+
+```
+notion-cli datasource create [flags]
+
+Flags:
+    --parent string       Parent database: database_id:<id> (required)
+    --title string        Data source title (plain text)
+    --properties string   Properties as JSON object (required)
+```
+
+```
+notion-cli datasource create --parent database_id:abc123 --title "Sales Data" --properties '{"Name":{"title":{}}}'
+```
+
+### datasource update
+
+Update an existing Notion data source.
+
+```
+notion-cli datasource update <data_source_id> [flags]
+
+Flags:
+    --title string        New data source title (plain text)
+    --properties string   Properties as JSON object
+```
+
+```
+notion-cli datasource update abc123 --title "Updated Sales Data"
+notion-cli datasource update abc123 --properties '{"Status":{"select":{}}}'
+```
+
+### datasource query
+
+Query a Notion data source.
+
+```
+notion-cli datasource query <data_source_id> [flags]
+
+Flags:
+    --filter string   Filter as JSON object
+```
+
+```
+notion-cli datasource query abc123
+notion-cli datasource query abc123 --filter '{"property":"Status","select":{"equals":"Active"}}'
+```
+
+### datasource templates
+
+Get templates for a Notion data source.
+
+```
+notion-cli datasource templates <data_source_id>
+```
+
+```
+notion-cli datasource templates abc123
+```
