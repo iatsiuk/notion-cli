@@ -63,6 +63,7 @@ func NewPageCreateCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "create",
 		Short: "Create a new Notion page",
+		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return runPageCreate(cmd.Context(), newClientFromCfg(), cmd.OutOrStdout(), cfg.Format, parentFlag, propertiesFlag)
 		},
@@ -141,6 +142,9 @@ func runPageUpdate(ctx context.Context, client *api.Client, w io.Writer, format,
 	var props map[string]any
 	if err := json.Unmarshal([]byte(propertiesJSON), &props); err != nil {
 		return fmt.Errorf("--properties: %w", err)
+	}
+	if props == nil {
+		return fmt.Errorf("--properties: must be a JSON object, got null")
 	}
 
 	req := &api.UpdatePageRequest{}
@@ -257,6 +261,9 @@ func runPageCreate(ctx context.Context, client *api.Client, w io.Writer, format,
 	var props map[string]any
 	if err := json.Unmarshal([]byte(propertiesJSON), &props); err != nil {
 		return fmt.Errorf("--properties: %w", err)
+	}
+	if props == nil {
+		return fmt.Errorf("--properties: must be a JSON object, got null")
 	}
 
 	req := &api.CreatePageRequest{
