@@ -21,6 +21,12 @@ func (f *jsonlFormatter) Format(w io.Writer, data any) error {
 		return err
 	}
 
+	// json.RawMessage is []byte and must not be iterated as a byte slice
+	if rm, ok := data.(json.RawMessage); ok {
+		_, err := fmt.Fprintf(w, "%s\n", rm)
+		return err
+	}
+
 	v := reflect.ValueOf(data)
 	if v.Kind() == reflect.Slice {
 		for i := range v.Len() {

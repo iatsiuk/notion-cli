@@ -395,7 +395,7 @@ func TestRunPageProperty_APIError(t *testing.T) {
 func TestRunPageMove_OutputsPage(t *testing.T) {
 	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/v1/pages/page-1/move" || r.Method != http.MethodPost {
+		if r.URL.Path != "/v1/pages/page-1/move" || r.Method != http.MethodPut {
 			http.Error(w, "not found", http.StatusNotFound)
 			return
 		}
