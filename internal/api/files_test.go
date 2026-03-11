@@ -349,3 +349,73 @@ func TestSendFileContent_Error(t *testing.T) {
 		t.Errorf("Status = %d, want 401", apiErr.Status)
 	}
 }
+
+func TestCompleteFileUpload(t *testing.T) {
+	t.Parallel()
+
+	const completedJSON = `{
+		"object": "file_upload",
+		"id": "fu-123",
+		"created_time": "2024-01-01T00:00:00Z",
+		"created_by": {"id": "user-1", "type": "person"},
+		"last_edited_time": "2024-01-01T00:00:00Z",
+		"in_trash": false,
+		"expiry_time": null,
+		"status": "uploaded",
+		"filename": "test.pdf",
+		"content_type": "application/pdf",
+		"content_length": 42,
+		"upload_url": "",
+		"complete_url": "",
+		"number_of_parts": {"total": 1, "sent": 1}
+	}`
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v1/file_uploads/fu-123/complete" {
+			http.Error(w, "not found", http.StatusNotFound)
+			return
+		}
+		if r.Method != http.MethodPost {
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(completedJSON))
+	}))
+	defer srv.Close()
+
+	client := api.NewClient("token", api.WithBaseURL(srv.URL))
+	fu, err := client.CompleteFileUpload(t.Context(), "fu-123")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if fu.ID != "fu-123" {
+		t.Errorf("ID = %q, want %q", fu.ID, "fu-123")
+	}
+	if fu.Status != "uploaded" {
+		t.Errorf("Status = %q, want %q", fu.Status, "uploaded")
+	}
+}
+
+func TestCompleteFileUpload_Error(t *testing.T) {
+	t.Parallel()
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusUnauthorized)
+		_, _ = w.Write([]byte(`{"status":401,"code":"unauthorized","message":"API token is invalid."}`))
+	}))
+	defer srv.Close()
+
+	client := api.NewClient("bad-token", api.WithBaseURL(srv.URL))
+	_, err := client.CompleteFileUpload(t.Context(), "fu-123")
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+	var apiErr *api.APIError
+	if !api.AsAPIError(err, &apiErr) {
+		t.Fatalf("expected *APIError, got %T: %v", err, err)
+	}
+	if apiErr.Status != 401 {
+		t.Errorf("Status = %d, want 401", apiErr.Status)
+	}
+}

@@ -123,6 +123,20 @@ func (c *Client) SendFileContent(ctx context.Context, fileUploadID, filename, co
 	return &fu, nil
 }
 
+// CompleteFileUpload marks a file upload as complete (POST /v1/file_uploads/{id}/complete).
+func (c *Client) CompleteFileUpload(ctx context.Context, fileUploadID string) (*FileUpload, error) {
+	path := "/v1/file_uploads/" + url.PathEscape(fileUploadID) + "/complete"
+	raw, err := c.Post(ctx, path, struct{}{})
+	if err != nil {
+		return nil, err
+	}
+	var fu FileUpload
+	if err := json.Unmarshal(raw, &fu); err != nil {
+		return nil, fmt.Errorf("decode file upload: %w", err)
+	}
+	return &fu, nil
+}
+
 // CreateFileUpload initiates a new file upload (POST /v1/file_uploads).
 func (c *Client) CreateFileUpload(ctx context.Context, params CreateFileUploadParams) (*FileUpload, error) {
 	raw, err := c.Post(ctx, "/v1/file_uploads", params)

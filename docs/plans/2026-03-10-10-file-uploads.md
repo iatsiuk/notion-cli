@@ -50,11 +50,11 @@
 - [x] run tests - must pass before next task
 
 ### Task 4: Complete file upload API method
-- [ ] write tests for CompleteFileUpload:
+- [x] write tests for CompleteFileUpload:
   - marks upload as complete
   - error handling
-- [ ] implement CompleteFileUpload method on Client (POST /v1/file_uploads/{id}/complete)
-- [ ] run tests - must pass before next task
+- [x] implement CompleteFileUpload method on Client (POST /v1/file_uploads/{id}/complete)
+- [x] run tests - must pass before next task
 
 ### Task 5: File upload CLI commands
 - [ ] write tests for all file subcommands in `internal/cli/file_test.go`
