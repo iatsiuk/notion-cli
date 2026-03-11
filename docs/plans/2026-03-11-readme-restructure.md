@@ -28,10 +28,10 @@
 ## Implementation Steps
 
 ### Task 1: Write header and installation sections
-- [ ] write project title and one-line description
-- [ ] write Homebrew installation section
-- [ ] write Binary releases section (link to GitHub Releases)
-- [ ] write From source section (Go 1.23+, git clone, make build)
+- [x] write project title and one-line description
+- [x] write Homebrew installation section
+- [x] write Binary releases section (link to GitHub Releases)
+- [x] write From source section (Go 1.23+, git clone, make build)
 
 ### Task 2: Write authentication and configuration sections
 - [ ] write Authentication section (NOTION_TOKEN env var, --token flag, precedence)
