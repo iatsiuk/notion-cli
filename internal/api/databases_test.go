@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"sync/atomic"
 	"testing"
 
 	"notion-cli/internal/api"
@@ -180,20 +181,20 @@ func TestListDatabases_Pagination(t *testing.T) {
 		"properties": {}
 	}`
 
-	var call int
+	var call int32
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		call++
+		c := atomic.AddInt32(&call, 1)
 		body, _ := io.ReadAll(r.Body)
 		var req struct {
 			StartCursor string `json:"start_cursor"`
 		}
 		_ = json.Unmarshal(body, &req)
-		if call == 2 && req.StartCursor != "cursor1" {
+		if c == 2 && req.StartCursor != "cursor1" {
 			http.Error(w, "missing start_cursor", http.StatusBadRequest)
 			return
 		}
 		w.Header().Set("Content-Type", "application/json")
-		if call == 1 {
+		if c == 1 {
 			_, _ = w.Write([]byte(`{"object":"list","results":[` + databaseJSON + `],"has_more":true,"next_cursor":"cursor1"}`))
 		} else {
 			_, _ = w.Write([]byte(`{"object":"list","results":[` + db2JSON + `],"has_more":false,"next_cursor":null}`))
@@ -215,8 +216,8 @@ func TestListDatabases_Pagination(t *testing.T) {
 	if dbs[1].ID != "db-2" {
 		t.Errorf("dbs[1].ID = %q, want %q", dbs[1].ID, "db-2")
 	}
-	if call != 2 {
-		t.Errorf("expected 2 HTTP calls, got %d", call)
+	if atomic.LoadInt32(&call) != 2 {
+		t.Errorf("expected 2 HTTP calls, got %d", atomic.LoadInt32(&call))
 	}
 }
 
@@ -457,6 +458,12 @@ func TestQueryDatabase_WithFilter(t *testing.T) {
 			http.Error(w, "not found", http.StatusNotFound)
 			return
 		}
+		body, _ := io.ReadAll(r.Body)
+		var payload map[string]json.RawMessage
+		if err := json.Unmarshal(body, &payload); err != nil || payload["filter"] == nil {
+			http.Error(w, "missing filter in request body", http.StatusBadRequest)
+			return
+		}
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = w.Write([]byte(`{"object":"list","results":[` + queryPageJSON + `],"has_more":false,"next_cursor":null}`))
 	}))
@@ -481,6 +488,12 @@ func TestQueryDatabase_WithSorts(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/v1/databases/db-1/query" || r.Method != http.MethodPost {
 			http.Error(w, "not found", http.StatusNotFound)
+			return
+		}
+		body, _ := io.ReadAll(r.Body)
+		var payload map[string]json.RawMessage
+		if err := json.Unmarshal(body, &payload); err != nil || payload["sorts"] == nil {
+			http.Error(w, "missing sorts in request body", http.StatusBadRequest)
 			return
 		}
 		w.Header().Set("Content-Type", "application/json")
@@ -521,20 +534,20 @@ func TestQueryDatabase_Pagination(t *testing.T) {
 		"properties": {}
 	}`
 
-	var call int
+	var call int32
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		call++
+		c := atomic.AddInt32(&call, 1)
 		body, _ := io.ReadAll(r.Body)
 		var req struct {
 			StartCursor string `json:"start_cursor"`
 		}
 		_ = json.Unmarshal(body, &req)
-		if call == 2 && req.StartCursor != "cursor1" {
+		if c == 2 && req.StartCursor != "cursor1" {
 			http.Error(w, "missing start_cursor", http.StatusBadRequest)
 			return
 		}
 		w.Header().Set("Content-Type", "application/json")
-		if call == 1 {
+		if c == 1 {
 			_, _ = w.Write([]byte(`{"object":"list","results":[` + queryPageJSON + `],"has_more":true,"next_cursor":"cursor1"}`))
 		} else {
 			_, _ = w.Write([]byte(`{"object":"list","results":[` + page2JSON + `],"has_more":false,"next_cursor":null}`))
@@ -556,8 +569,8 @@ func TestQueryDatabase_Pagination(t *testing.T) {
 	if pages[1].ID != "page-2" {
 		t.Errorf("pages[1].ID = %q, want %q", pages[1].ID, "page-2")
 	}
-	if call != 2 {
-		t.Errorf("expected 2 HTTP calls, got %d", call)
+	if atomic.LoadInt32(&call) != 2 {
+		t.Errorf("expected 2 HTTP calls, got %d", atomic.LoadInt32(&call))
 	}
 }
 
