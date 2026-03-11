@@ -1,7 +1,6 @@
 package api
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -67,36 +66,49 @@ func (c *Client) GetFileUpload(ctx context.Context, fileUploadID string) (*FileU
 	return &fu, nil
 }
 
+// writeMultipartFile writes file content and optional part_number into mw, then closes pw.
+func writeMultipartFile(mw *multipart.Writer, pw *io.PipeWriter, filename, contentType string, content io.Reader, partNumber int) {
+	err := func() error {
+		h := make(textproto.MIMEHeader)
+		h.Set("Content-Disposition", mime.FormatMediaType("form-data", map[string]string{"name": "file", "filename": filename}))
+		h.Set("Content-Type", contentType)
+		part, err := mw.CreatePart(h)
+		if err != nil {
+			return fmt.Errorf("create multipart part: %w", err)
+		}
+		if _, err := io.Copy(part, content); err != nil {
+			return fmt.Errorf("write file content: %w", err)
+		}
+		if partNumber > 0 {
+			if err := mw.WriteField("part_number", strconv.Itoa(partNumber)); err != nil {
+				return fmt.Errorf("write part_number: %w", err)
+			}
+		}
+		if err := mw.Close(); err != nil {
+			return fmt.Errorf("close multipart writer: %w", err)
+		}
+		return nil
+	}()
+	if err != nil {
+		_ = pw.CloseWithError(err)
+	} else {
+		_ = pw.Close()
+	}
+}
+
 // SendFileContent uploads file content via multipart/form-data (POST /v1/file_uploads/{id}/send).
 // partNumber is optional; pass 0 to omit it (used for single-part uploads).
+// Content is streamed directly without buffering the entire file in memory.
 func (c *Client) SendFileContent(ctx context.Context, fileUploadID, filename, contentType string, content io.Reader, partNumber int) (*FileUpload, error) {
-	var buf bytes.Buffer
-	mw := multipart.NewWriter(&buf)
+	pr, pw := io.Pipe()
+	mw := multipart.NewWriter(pw)
 
-	h := make(textproto.MIMEHeader)
-	h.Set("Content-Disposition", mime.FormatMediaType("form-data", map[string]string{"name": "file", "filename": filename}))
-	h.Set("Content-Type", contentType)
-	part, err := mw.CreatePart(h)
-	if err != nil {
-		return nil, fmt.Errorf("create multipart part: %w", err)
-	}
-	if _, err := io.Copy(part, content); err != nil {
-		return nil, fmt.Errorf("write file content: %w", err)
-	}
-
-	if partNumber > 0 {
-		if err := mw.WriteField("part_number", strconv.Itoa(partNumber)); err != nil {
-			return nil, fmt.Errorf("write part_number: %w", err)
-		}
-	}
-
-	if err := mw.Close(); err != nil {
-		return nil, fmt.Errorf("close multipart writer: %w", err)
-	}
+	go writeMultipartFile(mw, pw, filename, contentType, content, partNumber)
 
 	path := "/v1/file_uploads/" + url.PathEscape(fileUploadID) + "/send"
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL+path, &buf)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL+path, pr)
 	if err != nil {
+		_ = pw.CloseWithError(err)
 		return nil, fmt.Errorf("build request: %w", err)
 	}
 	req.Header.Set("Content-Type", mw.FormDataContentType())

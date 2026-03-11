@@ -49,7 +49,7 @@ func TestRunFileCreate_OutputsFileUpload(t *testing.T) {
 
 	client := api.NewClient("token", api.WithBaseURL(srv.URL), api.WithHTTPClient(srv.Client()))
 	var buf bytes.Buffer
-	err := runFileCreate(context.Background(), client, &buf, "json", "test.txt", "text/plain")
+	err := runFileCreate(context.Background(), client, &buf, "json", "test.txt", "text/plain", "", 0)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -68,7 +68,7 @@ func TestRunFileCreate_NoFilenameNoContentType(t *testing.T) {
 
 	client := api.NewClient("token", api.WithBaseURL(srv.URL), api.WithHTTPClient(srv.Client()))
 	var buf bytes.Buffer
-	err := runFileCreate(context.Background(), client, &buf, "json", "", "")
+	err := runFileCreate(context.Background(), client, &buf, "json", "", "", "", 0)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -84,7 +84,7 @@ func TestRunFileCreate_APIError(t *testing.T) {
 
 	client := api.NewClient("token", api.WithBaseURL(srv.URL), api.WithHTTPClient(srv.Client()))
 	var buf bytes.Buffer
-	err := runFileCreate(context.Background(), client, &buf, "json", "f.txt", "text/plain")
+	err := runFileCreate(context.Background(), client, &buf, "json", "f.txt", "text/plain", "", 0)
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}

@@ -33,25 +33,30 @@ func NewFileCmd() *cobra.Command {
 
 // NewFileCreateCmd returns the "file create" cobra subcommand.
 func NewFileCreateCmd() *cobra.Command {
-	var filenameFlag, contentTypeFlag string
+	var filenameFlag, contentTypeFlag, modeFlag string
+	var numPartsFlag int
 
 	cmd := &cobra.Command{
 		Use:   "create",
 		Short: "Initiate a new file upload",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return runFileCreate(cmd.Context(), newClientFromCfg(), cmd.OutOrStdout(), cfg.Format, filenameFlag, contentTypeFlag)
+			return runFileCreate(cmd.Context(), newClientFromCfg(), cmd.OutOrStdout(), cfg.Format, filenameFlag, contentTypeFlag, modeFlag, numPartsFlag)
 		},
 	}
 	cmd.Flags().StringVar(&filenameFlag, "filename", "", "Filename for the upload")
 	cmd.Flags().StringVar(&contentTypeFlag, "content-type", "", "MIME content type")
+	cmd.Flags().StringVar(&modeFlag, "mode", "", "Upload mode (e.g. multi)")
+	cmd.Flags().IntVar(&numPartsFlag, "number-of-parts", 0, "Number of parts for multipart upload")
 	return cmd
 }
 
-func runFileCreate(ctx context.Context, client *api.Client, w io.Writer, format, filename, contentType string) error {
+func runFileCreate(ctx context.Context, client *api.Client, w io.Writer, format, filename, contentType, mode string, numParts int) error {
 	params := api.CreateFileUploadParams{
-		Filename:    filename,
-		ContentType: contentType,
+		Filename:      filename,
+		ContentType:   contentType,
+		Mode:          mode,
+		NumberOfParts: numParts,
 	}
 	fu, err := client.CreateFileUpload(ctx, params)
 	if err != nil {
