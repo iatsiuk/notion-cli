@@ -257,3 +257,56 @@ func TestGetDatabase_NotFound(t *testing.T) {
 		t.Errorf("Status = %d, want 404", apiErr.Status)
 	}
 }
+
+func TestCreateDatabase(t *testing.T) {
+	t.Parallel()
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v1/databases" || r.Method != http.MethodPost {
+			http.Error(w, "not found", http.StatusNotFound)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(databaseJSON))
+	}))
+	defer srv.Close()
+
+	client := api.NewClient("token", api.WithBaseURL(srv.URL))
+	req := &api.CreateDatabaseRequest{
+		Parent: api.Parent{Type: "page_id", PageID: "page-1"},
+	}
+	db, err := client.CreateDatabase(t.Context(), req)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if db.ID != "db-1" {
+		t.Errorf("ID = %q, want %q", db.ID, "db-1")
+	}
+	if db.Parent.PageID != "page-1" {
+		t.Errorf("Parent.PageID = %q, want %q", db.Parent.PageID, "page-1")
+	}
+}
+
+func TestCreateDatabase_Error(t *testing.T) {
+	t.Parallel()
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusBadRequest)
+		_, _ = w.Write([]byte(`{"status":400,"code":"validation_error","message":"parent is required"}`))
+	}))
+	defer srv.Close()
+
+	client := api.NewClient("token", api.WithBaseURL(srv.URL))
+	_, err := client.CreateDatabase(t.Context(), &api.CreateDatabaseRequest{})
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+
+	var apiErr *api.APIError
+	if !api.AsAPIError(err, &apiErr) {
+		t.Fatalf("expected *APIError, got %T: %v", err, err)
+	}
+	if apiErr.Status != 400 {
+		t.Errorf("Status = %d, want 400", apiErr.Status)
+	}
+}

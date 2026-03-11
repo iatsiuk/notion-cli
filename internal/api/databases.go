@@ -86,6 +86,26 @@ func (c *Client) ListDatabases(ctx context.Context) ([]Database, error) {
 	}
 }
 
+// CreateDatabaseRequest is the body for POST /v1/databases.
+type CreateDatabaseRequest struct {
+	Parent     Parent         `json:"parent"`
+	Title      []any          `json:"title,omitempty"`
+	Properties map[string]any `json:"properties,omitempty"`
+}
+
+// CreateDatabase creates a new database.
+func (c *Client) CreateDatabase(ctx context.Context, req *CreateDatabaseRequest) (*Database, error) {
+	raw, err := c.Post(ctx, "/v1/databases", req)
+	if err != nil {
+		return nil, err
+	}
+	var db Database
+	if err := json.Unmarshal(raw, &db); err != nil {
+		return nil, fmt.Errorf("decode database: %w", err)
+	}
+	return &db, nil
+}
+
 // GetDatabase retrieves a database by ID.
 func (c *Client) GetDatabase(ctx context.Context, databaseID string) (*Database, error) {
 	raw, err := c.Get(ctx, "/v1/databases/"+url.PathEscape(databaseID), nil)

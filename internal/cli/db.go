@@ -2,8 +2,10 @@ package cli
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/spf13/cobra"
 
@@ -22,7 +24,86 @@ func NewDBCmd() *cobra.Command {
 	}
 	cmd.AddCommand(NewDBGetCmd())
 	cmd.AddCommand(NewDBListCmd())
+	cmd.AddCommand(NewDBCreateCmd())
 	return cmd
+}
+
+// parseDBParent parses parent string for database create.
+// Accepts "page_id:id" or "workspace".
+func parseDBParent(s string) (api.Parent, error) {
+	if s == "workspace" {
+		return api.Parent{Type: "workspace", Workspace: true}, nil
+	}
+	idx := strings.Index(s, ":")
+	if idx < 0 {
+		return api.Parent{}, fmt.Errorf("invalid parent format %q: expected page_id:id or workspace", s)
+	}
+	typ, id := s[:idx], s[idx+1:]
+	if id == "" {
+		return api.Parent{}, fmt.Errorf("invalid parent format %q: id is empty", s)
+	}
+	if typ != "page_id" {
+		return api.Parent{}, fmt.Errorf("unsupported parent type %q: use page_id or workspace", typ)
+	}
+	return api.Parent{Type: "page_id", PageID: id}, nil
+}
+
+// NewDBCreateCmd returns the "db create" cobra subcommand.
+func NewDBCreateCmd() *cobra.Command {
+	var parentFlag, titleFlag, propertiesFlag string
+
+	cmd := &cobra.Command{
+		Use:   "create",
+		Short: "Create a new Notion database",
+		Args:  cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return runDBCreate(cmd.Context(), newClientFromCfg(), cmd.OutOrStdout(), cfg.Format, parentFlag, titleFlag, propertiesFlag)
+		},
+	}
+	cmd.Flags().StringVar(&parentFlag, "parent", "", "Parent: page_id:id or workspace")
+	cmd.Flags().StringVar(&titleFlag, "title", "", "Database title (plain text)")
+	cmd.Flags().StringVar(&propertiesFlag, "properties", "{}", "Properties schema as JSON object")
+	_ = cmd.MarkFlagRequired("parent")
+	return cmd
+}
+
+func runDBCreate(ctx context.Context, client *api.Client, w io.Writer, format, parentStr, title, propertiesJSON string) error {
+	parent, err := parseDBParent(parentStr)
+	if err != nil {
+		return fmt.Errorf("--parent: %w", err)
+	}
+
+	var props map[string]any
+	if err := json.Unmarshal([]byte(propertiesJSON), &props); err != nil {
+		return fmt.Errorf("--properties: %w", err)
+	}
+	if props == nil {
+		return fmt.Errorf("--properties: must be a JSON object, got null")
+	}
+
+	req := &api.CreateDatabaseRequest{
+		Parent: parent,
+	}
+	if title != "" {
+		req.Title = []any{map[string]any{
+			"type": "text",
+			"text": map[string]any{"content": title},
+		}}
+	}
+	if len(props) > 0 {
+		req.Properties = props
+	}
+
+	db, err := client.CreateDatabase(ctx, req)
+	if err != nil {
+		return mapAPIError(err)
+	}
+
+	f, err := output.New(format, isTerminal(w))
+	if err != nil {
+		return fmt.Errorf("output format: %w", err)
+	}
+	return f.Format(w, db)
 }
 
 // NewDBGetCmd returns the "db get" cobra subcommand.
