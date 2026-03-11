@@ -39,7 +39,12 @@ func runSearch(ctx context.Context, client *api.Client, w io.Writer, format, que
 		if typeFilter != "page" && typeFilter != "database" {
 			return fmt.Errorf("--type must be page or database")
 		}
-		req.Filter = &api.SearchFilter{Value: typeFilter, Property: "object"}
+		// Notion API uses "data_source" for databases in the search filter
+		filterValue := typeFilter
+		if typeFilter == "database" {
+			filterValue = "data_source"
+		}
+		req.Filter = &api.SearchFilter{Value: filterValue, Property: "object"}
 	}
 
 	if sortDir != "" {

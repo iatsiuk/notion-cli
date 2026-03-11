@@ -138,7 +138,7 @@ func TestRunSearch_TypeFilterDatabase(t *testing.T) {
 			http.Error(w, "bad body", http.StatusBadRequest)
 			return
 		}
-		if body.Filter.Value != "database" || body.Filter.Property != "object" {
+		if body.Filter.Value != "data_source" || body.Filter.Property != "object" {
 			http.Error(w, "bad filter", http.StatusBadRequest)
 			return
 		}

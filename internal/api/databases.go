@@ -49,7 +49,7 @@ type listResponse struct {
 // ListDatabases returns all databases accessible to the integration via the search API.
 func (c *Client) ListDatabases(ctx context.Context) ([]Database, error) {
 	req := SearchRequest{
-		Filter: &SearchFilter{Value: "database", Property: "object"},
+		Filter: &SearchFilter{Value: "data_source", Property: "object"},
 	}
 	all := make([]Database, 0)
 	for {
