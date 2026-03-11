@@ -26,13 +26,13 @@
 ## Implementation Steps
 
 ### Task 1: Data source types and list API method
-- [ ] write tests in `internal/api/datasources_test.go`:
+- [x] write tests in `internal/api/datasources_test.go`:
   - ListDataSources returns paginated results
   - data source JSON deserialization
   - error handling
-- [ ] define DataSource struct in `internal/api/datasources.go` matching openapi.json schema
-- [ ] implement ListDataSources method on Client (GET /v1/data_sources)
-- [ ] run tests - must pass before next task
+- [x] define DataSource struct in `internal/api/datasources.go` matching openapi.json schema
+- [x] implement ListDataSources method on Client (GET /v1/data_sources)
+- [x] run tests - must pass before next task
 
 ### Task 2: Create, get, update API methods
 - [ ] write tests for CreateDataSource, GetDataSource, UpdateDataSource:
