@@ -1,0 +1,116 @@
+# README Restructure
+
+## Overview
+- Rewrite README.md following the linear-cli README structure as reference
+- Replace single "Quick Usage" code block with dedicated sections per command group
+- Add missing sections: From source installation, Pipe-friendly Workflows
+- Each command gets its own section with flags in code blocks and usage examples
+
+## Context (from discovery)
+- Files involved: `README.md`
+- Reference: `/Volumes/Data/Devzone/linear-cli/README.md`
+- Commands: status, user, page, db, block, comment, search, file, datasource, oauth
+- Global flags: --token/-t, --format/-f, --quiet, --verbose
+- No shell completion in codebase (skip that section)
+- No config file support (authentication via env var / flag only)
+
+## Development Approach
+- **Testing approach**: N/A (documentation only)
+- Single file change -- README.md
+- Use actual command flags from cobra definitions (verified via codebase exploration)
+- Keep all text in English (per CLAUDE.md)
+
+## Progress Tracking
+- Mark completed items with `[x]` immediately when done
+- Add newly discovered tasks with + prefix
+- Document issues/blockers with ! prefix
+
+## Implementation Steps
+
+### Task 1: Write header and installation sections
+- [x] write project title and one-line description
+- [x] write Homebrew installation section
+- [x] write Binary releases section (link to GitHub Releases)
+- [x] write From source section (Go 1.23+, git clone, make build)
+
+### Task 2: Write authentication and configuration sections
+- [x] write Authentication section (NOTION_TOKEN env var, --token flag, precedence)
+- [x] write Global Flags table (--token, --format, --quiet, --verbose)
+- [x] write Output Formats section (auto-detection, json/jsonl/raw/table)
+- [x] write Exit Codes table
+
+### Task 3: Write Search command section
+- [x] write `search` command with flags (--type, --sort) and examples
+
+### Task 4: Write Page Commands section
+- [x] write `page get` with flags and example
+- [x] write `page create` with flags (--parent, --properties) and example
+- [x] write `page update` with flags (--properties, --archive/--unarchive) and example
+- [x] write `page property` with example
+- [x] write `page move` with flags (--parent) and example
+- [x] write `page markdown` with example
+
+### Task 5: Write Database Commands section
+- [x] write `db get` with example
+- [x] write `db list` with example
+- [x] write `db create` with flags (--parent, --title, --properties) and example
+- [x] write `db update` with flags (--title, --description, --properties) and example
+- [x] write `db query` with flags (--filter, --sort) and examples
+
+### Task 6: Write Block Commands section
+- [x] write `block get` with example
+- [x] write `block update` with flags (--data, --archive/--unarchive) and example
+- [x] write `block children` with example
+- [x] write `block append` with flags (--children) and example
+- [x] write `block delete` with example
+
+### Task 7: Write Comment Commands section
+- [x] write `comment list` with flags (--block) and example
+- [x] write `comment create` with flags (--page/--discussion, --text) and examples
+- [x] write `comment get` with example
+
+### Task 8: Write User Commands section
+- [x] write `user me` with example
+- [x] write `user list` with example
+- [x] write `user get` with example
+
+### Task 9: Write File Upload Commands section
+- [x] write `file create` with flags and example
+- [x] write `file get` with example
+- [x] write `file send` with flags (--content-type, --part) and example
+- [x] write `file complete` with example
+- [x] write `file upload` (one-step) with example
+
+### Task 10: Write Data Source Commands section
+- [x] write `datasource list` with example
+- [x] write `datasource get` with example
+- [x] write `datasource create` with flags and example
+- [x] write `datasource update` with flags and example
+- [x] write `datasource query` with flags and example
+- [x] write `datasource templates` with example
+
+### Task 11: Write OAuth Commands section
+- [x] write `oauth token` with flags and example
+- [x] write `oauth introspect` with flags and example
+- [x] write `oauth revoke` with flags and example
+
+### Task 12: Write Status command section
+- [x] write `status` command description and example
+
+### Task 13: Write Pipe-friendly Workflows section
+- [x] write 3-4 pipeline examples using jq with notion-cli commands
+
+### Task 14: Final review
+- [x] verify all commands from codebase are documented
+- [x] verify all flags match cobra definitions
+- [x] verify consistent formatting across all sections
+- [x] run `make build` to ensure no accidental code changes
+
+## Technical Details
+- Structure order: Installation -> Authentication -> Global Flags -> Output Formats -> Exit Codes -> Commands (search, page, db, block, comment, user, file, datasource, oauth, status) -> Pipe-friendly Workflows
+- Each command section: H2 for command group, H3 for subcommands
+- Flags in code blocks (same format as linear-cli)
+- Examples in code blocks after each subcommand
+
+## Post-Completion
+- Review rendered markdown on GitHub for formatting issues
