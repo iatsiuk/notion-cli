@@ -98,7 +98,7 @@
 - [x] write `status` command description and example
 
 ### Task 13: Write Pipe-friendly Workflows section
-- [ ] write 3-4 pipeline examples using jq with notion-cli commands
+- [x] write 3-4 pipeline examples using jq with notion-cli commands
 
 ### Task 14: Final review
 - [ ] verify all commands from codebase are documented
