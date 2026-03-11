@@ -117,13 +117,16 @@ func runPageUpdate(ctx context.Context, client *api.Client, w io.Writer, format,
 		return fmt.Errorf("--properties: %w", err)
 	}
 
-	req := &api.UpdatePageRequest{Properties: props}
+	req := &api.UpdatePageRequest{}
+	if len(props) > 0 {
+		req.Properties = props
+	}
 	if archive {
 		t := true
-		req.Archived = &t
+		req.InTrash = &t
 	} else if unarchive {
 		f := false
-		req.Archived = &f
+		req.InTrash = &f
 	}
 
 	page, err := client.UpdatePage(ctx, pageID, req)

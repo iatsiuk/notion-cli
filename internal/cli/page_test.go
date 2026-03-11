@@ -274,8 +274,8 @@ func TestRunPageUpdate_Archives(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if v, ok := gotBody["archived"].(bool); !ok || !v {
-		t.Errorf("archived = %v, want true", gotBody["archived"])
+	if v, ok := gotBody["in_trash"].(bool); !ok || !v {
+		t.Errorf("in_trash = %v, want true", gotBody["in_trash"])
 	}
 }
 
@@ -295,8 +295,8 @@ func TestRunPageUpdate_Unarchives(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if v, ok := gotBody["archived"].(bool); !ok || v {
-		t.Errorf("archived = %v, want false", gotBody["archived"])
+	if v, ok := gotBody["in_trash"].(bool); !ok || v {
+		t.Errorf("in_trash = %v, want false", gotBody["in_trash"])
 	}
 }
 

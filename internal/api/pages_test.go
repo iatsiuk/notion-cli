@@ -377,16 +377,16 @@ func TestUpdatePage_Archives(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	archived := true
+	inTrash := true
 	client := api.NewClient("token", api.WithBaseURL(srv.URL))
-	req := &api.UpdatePageRequest{Archived: &archived}
+	req := &api.UpdatePageRequest{InTrash: &inTrash}
 	_, err := client.UpdatePage(t.Context(), "page-1", req)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	v, ok := gotBody["archived"].(bool)
+	v, ok := gotBody["in_trash"].(bool)
 	if !ok || !v {
-		t.Errorf("archived = %v, want true", gotBody["archived"])
+		t.Errorf("in_trash = %v, want true", gotBody["in_trash"])
 	}
 }
 

@@ -65,7 +65,7 @@ func (c *Client) CreatePage(ctx context.Context, req *CreatePageRequest) (*Page,
 // UpdatePageRequest is the body for updating an existing page.
 type UpdatePageRequest struct {
 	Properties map[string]any `json:"properties,omitempty"`
-	Archived   *bool          `json:"archived,omitempty"`
+	InTrash    *bool          `json:"in_trash,omitempty"`
 	Icon       any            `json:"icon,omitempty"`
 	Cover      any            `json:"cover,omitempty"`
 }
@@ -92,6 +92,35 @@ type propertyListPage struct {
 	HasMore    bool              `json:"has_more"`
 }
 
+// collectPropertyPages fetches all remaining pages for a paginated property.
+func (c *Client) collectPropertyPages(ctx context.Context, path string, first propertyListPage) ([]json.RawMessage, error) {
+	allResults := make([]json.RawMessage, 0, len(first.Results))
+	allResults = append(allResults, first.Results...)
+
+	cursor := first.NextCursor
+	for cursor != nil {
+		params := url.Values{"start_cursor": {*cursor}}
+		raw, err := c.Get(ctx, path, params)
+		if err != nil {
+			return nil, err
+		}
+		var page propertyListPage
+		if err := json.Unmarshal(raw, &page); err != nil {
+			return nil, fmt.Errorf("decode property page: %w", err)
+		}
+		allResults = append(allResults, page.Results...)
+		switch {
+		case !page.HasMore:
+			cursor = nil
+		case page.NextCursor == nil:
+			return nil, fmt.Errorf("pagination: has_more=true but next_cursor is null")
+		default:
+			cursor = page.NextCursor
+		}
+	}
+	return allResults, nil
+}
+
 // GetPageProperty retrieves a page property by ID.
 // For paginated properties (title, rich_text, relation, rollup), collects all pages.
 func (c *Client) GetPageProperty(ctx context.Context, pageID, propertyID string) (json.RawMessage, error) {
@@ -111,26 +140,9 @@ func (c *Client) GetPageProperty(ctx context.Context, pageID, propertyID string)
 		return raw, nil
 	}
 
-	allResults := make([]json.RawMessage, 0, len(first.Results))
-	allResults = append(allResults, first.Results...)
-
-	cursor := first.NextCursor
-	for cursor != nil {
-		params := url.Values{"start_cursor": {*cursor}}
-		raw, err = c.Get(ctx, path, params)
-		if err != nil {
-			return nil, err
-		}
-		var page propertyListPage
-		if err := json.Unmarshal(raw, &page); err != nil {
-			return nil, fmt.Errorf("decode property page: %w", err)
-		}
-		allResults = append(allResults, page.Results...)
-		if !page.HasMore {
-			cursor = nil
-		} else {
-			cursor = page.NextCursor
-		}
+	allResults, err := c.collectPropertyPages(ctx, path, first)
+	if err != nil {
+		return nil, err
 	}
 
 	merged := propertyListPage{
