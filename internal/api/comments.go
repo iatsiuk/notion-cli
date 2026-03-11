@@ -35,6 +35,26 @@ type Comment struct {
 	CreatedBy      PartialUser    `json:"created_by"`
 }
 
+// CreateCommentRequest is the body for creating a comment.
+type CreateCommentRequest struct {
+	Parent       *Parent        `json:"parent,omitempty"`
+	DiscussionID string         `json:"discussion_id,omitempty"`
+	RichText     []RichTextItem `json:"rich_text"`
+}
+
+// CreateComment creates a new comment on a page or in a discussion.
+func (c *Client) CreateComment(ctx context.Context, req *CreateCommentRequest) (*Comment, error) {
+	raw, err := c.Post(ctx, "/v1/comments", req)
+	if err != nil {
+		return nil, err
+	}
+	var cmt Comment
+	if err := json.Unmarshal(raw, &cmt); err != nil {
+		return nil, fmt.Errorf("decode comment: %w", err)
+	}
+	return &cmt, nil
+}
+
 // ListComments returns all comments for a block (auto-paginated).
 func (c *Client) ListComments(ctx context.Context, blockID string) ([]Comment, error) {
 	params := url.Values{"block_id": {blockID}}

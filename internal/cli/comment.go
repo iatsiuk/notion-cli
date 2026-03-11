@@ -21,6 +21,7 @@ func NewCommentCmd() *cobra.Command {
 		},
 	}
 	cmd.AddCommand(NewCommentListCmd())
+	cmd.AddCommand(NewCommentCreateCmd())
 	return cmd
 }
 
@@ -40,6 +41,51 @@ func NewCommentListCmd() *cobra.Command {
 	}
 	cmd.Flags().StringVar(&blockID, "block", "", "Block or page ID to list comments for")
 	return cmd
+}
+
+// NewCommentCreateCmd returns the "comment create" cobra subcommand.
+func NewCommentCreateCmd() *cobra.Command {
+	var pageID, discussionID, text string
+
+	cmd := &cobra.Command{
+		Use:   "create",
+		Short: "Create a comment on a page or in a discussion",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if pageID == "" && discussionID == "" {
+				return fmt.Errorf("one of --page or --discussion is required")
+			}
+			if text == "" {
+				return fmt.Errorf("--text flag is required")
+			}
+			return runCommentCreate(cmd.Context(), newClientFromCfg(), cmd.OutOrStdout(), cfg.Format, pageID, discussionID, text)
+		},
+	}
+	cmd.Flags().StringVar(&pageID, "page", "", "Page ID to comment on")
+	cmd.Flags().StringVar(&discussionID, "discussion", "", "Discussion ID to reply in")
+	cmd.Flags().StringVar(&text, "text", "", "Comment text content")
+	return cmd
+}
+
+func runCommentCreate(ctx context.Context, client *api.Client, w io.Writer, format, pageID, discussionID, text string) error {
+	req := &api.CreateCommentRequest{
+		RichText: []api.RichTextItem{{Type: "text", Text: &api.RichTextText{Content: text}}},
+	}
+	if pageID != "" {
+		req.Parent = &api.Parent{PageID: pageID}
+	} else {
+		req.DiscussionID = discussionID
+	}
+
+	cmt, err := client.CreateComment(ctx, req)
+	if err != nil {
+		return mapAPIError(err)
+	}
+
+	f, err := output.New(format, isTerminal(w))
+	if err != nil {
+		return fmt.Errorf("output format: %w", err)
+	}
+	return f.Format(w, cmt)
 }
 
 func runCommentList(ctx context.Context, client *api.Client, w io.Writer, format, blockID string) error {
