@@ -57,10 +57,10 @@ Fix 3 confirmed bugs from e2e testing (`e2e-errors.md`):
 - [x] run `make build` -- linter must pass
 
 ### Task 3: File upload -- write failing test for auto-completed upload
-- [ ] add test `TestRunFileUpload_SkipsCompleteWhenAlreadyUploaded` -- mock server returns status="uploaded" after send, expect no complete call and success output
-- [ ] add test `TestRunFileUpload_CompletesWhenPending` -- mock server returns status="pending" after send, complete returns status="uploaded", expect success
-- [ ] add API-level test `TestSendFileContent_ReturnsStatus` -- verify `SendFileContent` returns updated `FileUpload` with status field
-- [ ] run tests -- confirm the skip-complete test FAILS (current code always calls complete)
+- [x] add test `TestRunFileUpload_SkipsCompleteWhenAlreadyUploaded` -- mock server returns status="uploaded" after send, expect no complete call and success output
+- [x] add test `TestRunFileUpload_CompletesWhenPending` -- mock server returns status="pending" after send, complete returns status="uploaded", expect success
+- [x] add API-level test `TestSendFileContent_ReturnsStatus` -- verify `SendFileContent` returns updated `FileUpload` with status field
+- [x] run tests -- confirm the skip-complete test FAILS (current code always calls complete)
 
 ### Task 4: File upload -- fix runFileUpload to check status before complete
 - [ ] modify `SendFileContent()` (`internal/api/files.go`) to return `*FileUpload` (parse response body) instead of just error, so caller can check status
