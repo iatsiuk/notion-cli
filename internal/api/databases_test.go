@@ -2,6 +2,7 @@ package api_test
 
 import (
 	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -182,6 +183,15 @@ func TestListDatabases_Pagination(t *testing.T) {
 	var call int
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		call++
+		body, _ := io.ReadAll(r.Body)
+		var req struct {
+			StartCursor string `json:"start_cursor"`
+		}
+		_ = json.Unmarshal(body, &req)
+		if call == 2 && req.StartCursor != "cursor1" {
+			http.Error(w, "missing start_cursor", http.StatusBadRequest)
+			return
+		}
 		w.Header().Set("Content-Type", "application/json")
 		if call == 1 {
 			_, _ = w.Write([]byte(`{"object":"list","results":[` + databaseJSON + `],"has_more":true,"next_cursor":"cursor1"}`))
@@ -514,6 +524,15 @@ func TestQueryDatabase_Pagination(t *testing.T) {
 	var call int
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		call++
+		body, _ := io.ReadAll(r.Body)
+		var req struct {
+			StartCursor string `json:"start_cursor"`
+		}
+		_ = json.Unmarshal(body, &req)
+		if call == 2 && req.StartCursor != "cursor1" {
+			http.Error(w, "missing start_cursor", http.StatusBadRequest)
+			return
+		}
 		w.Header().Set("Content-Type", "application/json")
 		if call == 1 {
 			_, _ = w.Write([]byte(`{"object":"list","results":[` + queryPageJSON + `],"has_more":true,"next_cursor":"cursor1"}`))

@@ -47,8 +47,8 @@ type searchFilter struct {
 	Property string `json:"property"`
 }
 
-// searchListResponse is a partial decode of the paginated search response.
-type searchListResponse struct {
+// listResponse is a partial decode of a Notion paginated list response.
+type listResponse struct {
 	Results    []json.RawMessage `json:"results"`
 	HasMore    bool              `json:"has_more"`
 	NextCursor *string           `json:"next_cursor"`
@@ -65,7 +65,7 @@ func (c *Client) ListDatabases(ctx context.Context) ([]Database, error) {
 		if err != nil {
 			return nil, err
 		}
-		var resp searchListResponse
+		var resp listResponse
 		if err := json.Unmarshal(raw, &resp); err != nil {
 			return nil, fmt.Errorf("decode search response: %w", err)
 		}
@@ -133,32 +133,26 @@ type QueryDatabaseRequest struct {
 	StartCursor string          `json:"start_cursor,omitempty"`
 }
 
-// queryDatabaseResponse is the paginated response from /v1/databases/{id}/query.
-type queryDatabaseResponse struct {
-	Results    []json.RawMessage `json:"results"`
-	HasMore    bool              `json:"has_more"`
-	NextCursor *string           `json:"next_cursor"`
-}
-
 // QueryDatabase queries a database and returns all matching pages (auto-paginated).
 func (c *Client) QueryDatabase(ctx context.Context, databaseID string, req *QueryDatabaseRequest) ([]Page, error) {
-	if req == nil {
-		req = &QueryDatabaseRequest{}
+	var r QueryDatabaseRequest
+	if req != nil {
+		r = *req
 	}
 	path := "/v1/databases/" + url.PathEscape(databaseID) + "/query"
 	all := make([]Page, 0)
 	for {
-		raw, err := c.Post(ctx, path, req)
+		raw, err := c.Post(ctx, path, r)
 		if err != nil {
 			return nil, err
 		}
-		var resp queryDatabaseResponse
+		var resp listResponse
 		if err := json.Unmarshal(raw, &resp); err != nil {
 			return nil, fmt.Errorf("decode query response: %w", err)
 		}
-		for _, r := range resp.Results {
+		for _, item := range resp.Results {
 			var p Page
-			if err := json.Unmarshal(r, &p); err != nil {
+			if err := json.Unmarshal(item, &p); err != nil {
 				return nil, fmt.Errorf("decode page: %w", err)
 			}
 			all = append(all, p)
@@ -169,7 +163,7 @@ func (c *Client) QueryDatabase(ctx context.Context, databaseID string, req *Quer
 		if resp.NextCursor == nil {
 			return nil, fmt.Errorf("pagination: has_more is true but next_cursor is nil")
 		}
-		req.StartCursor = *resp.NextCursor
+		r.StartCursor = *resp.NextCursor
 	}
 }
 
