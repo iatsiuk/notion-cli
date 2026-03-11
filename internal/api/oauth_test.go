@@ -91,8 +91,12 @@ func TestTokenExchange_Payload(t *testing.T) {
 	if tok.WorkspaceID != "ws-1" {
 		t.Errorf("WorkspaceID = %q, want %q", tok.WorkspaceID, "ws-1")
 	}
-	if tok.WorkspaceName != "Acme" {
-		t.Errorf("WorkspaceName = %q, want %q", tok.WorkspaceName, "Acme")
+	if tok.WorkspaceName == nil || *tok.WorkspaceName != "Acme" {
+		got := "<nil>"
+		if tok.WorkspaceName != nil {
+			got = *tok.WorkspaceName
+		}
+		t.Errorf("WorkspaceName = %q, want %q", got, "Acme")
 	}
 }
 
@@ -294,9 +298,12 @@ func TestRevokeToken_Success(t *testing.T) {
 	defer srv.Close()
 
 	client := api.NewClient("", api.WithBaseURL(srv.URL))
-	err := client.RevokeToken(t.Context(), "cid", "csecret", "tok-to-revoke")
+	result, err := client.RevokeToken(t.Context(), "cid", "csecret", "tok-to-revoke")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
+	}
+	if result == nil || result.RequestID != "req-revoke-1" {
+		t.Errorf("RequestID = %v, want %q", result, "req-revoke-1")
 	}
 }
 
@@ -310,7 +317,7 @@ func TestRevokeToken_Error(t *testing.T) {
 	defer srv.Close()
 
 	client := api.NewClient("", api.WithBaseURL(srv.URL))
-	err := client.RevokeToken(t.Context(), "cid", "csecret", "nonexistent")
+	_, err := client.RevokeToken(t.Context(), "cid", "csecret", "nonexistent")
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}

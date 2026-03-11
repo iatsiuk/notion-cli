@@ -20,13 +20,19 @@ type OAuthOwner struct {
 type OAuthToken struct {
 	AccessToken          string     `json:"access_token"` //nolint:gosec
 	TokenType            string     `json:"token_type"`
+	RefreshToken         *string    `json:"refresh_token,omitempty"` //nolint:gosec
 	BotID                string     `json:"bot_id"`
 	WorkspaceID          string     `json:"workspace_id"`
-	WorkspaceName        string     `json:"workspace_name"`
-	WorkspaceIcon        string     `json:"workspace_icon,omitempty"`
+	WorkspaceName        *string    `json:"workspace_name"`
+	WorkspaceIcon        *string    `json:"workspace_icon"`
 	DuplicatedTemplateID *string    `json:"duplicated_template_id,omitempty"`
 	RequestID            string     `json:"request_id,omitempty"`
 	Owner                OAuthOwner `json:"owner"`
+}
+
+// OAuthRevokeResult is the response from POST /v1/oauth/revoke.
+type OAuthRevokeResult struct {
+	RequestID string `json:"request_id,omitempty"`
 }
 
 // tokenExchangeBody is the request body for POST /v1/oauth/token.
@@ -83,9 +89,17 @@ func (c *Client) IntrospectToken(ctx context.Context, clientID, clientSecret, to
 
 // RevokeToken revokes an access token.
 // Uses HTTP Basic auth with clientID and clientSecret.
-func (c *Client) RevokeToken(ctx context.Context, clientID, clientSecret, token string) error {
-	_, err := c.oauthPost(ctx, clientID, clientSecret, "/v1/oauth/revoke", map[string]string{"token": token})
-	return err
+func (c *Client) RevokeToken(ctx context.Context, clientID, clientSecret, token string) (*OAuthRevokeResult, error) {
+	raw, err := c.oauthPost(ctx, clientID, clientSecret, "/v1/oauth/revoke", map[string]string{"token": token})
+	if err != nil {
+		return nil, err
+	}
+
+	var result OAuthRevokeResult
+	if err := json.Unmarshal(raw, &result); err != nil {
+		return nil, fmt.Errorf("decode revoke: %w", err)
+	}
+	return &result, nil
 }
 
 // oauthPost sends a POST request with Basic auth and JSON body.

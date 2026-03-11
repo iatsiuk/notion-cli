@@ -93,7 +93,7 @@ func newOAuthRevokeCmd() *cobra.Command {
 		Short: "Revoke an access token",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return runOAuthRevoke(cmd.Context(), newClientFromCfg(), cmd.OutOrStdout(),
+			return runOAuthRevoke(cmd.Context(), newClientFromCfg(), cmd.OutOrStdout(), cfg.Format,
 				clientID, clientSecret, token)
 		},
 	}
@@ -132,9 +132,15 @@ func runOAuthIntrospect(ctx context.Context, client *api.Client, w io.Writer, fo
 	return f.Format(w, info)
 }
 
-func runOAuthRevoke(ctx context.Context, client *api.Client, w io.Writer, clientID, clientSecret, token string) error {
-	if err := client.RevokeToken(ctx, clientID, clientSecret, token); err != nil {
+func runOAuthRevoke(ctx context.Context, client *api.Client, w io.Writer, format, clientID, clientSecret, token string) error {
+	result, err := client.RevokeToken(ctx, clientID, clientSecret, token)
+	if err != nil {
 		return mapAPIError(err)
 	}
-	return nil
+
+	f, err := output.New(format, isTerminal(w))
+	if err != nil {
+		return fmt.Errorf("output format: %w", err)
+	}
+	return f.Format(w, result)
 }

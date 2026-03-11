@@ -215,9 +215,14 @@ func TestRunOAuthRevoke_Success(t *testing.T) {
 
 	client := api.NewClient("", api.WithBaseURL(srv.URL), api.WithHTTPClient(srv.Client()))
 	var buf bytes.Buffer
-	err := runOAuthRevoke(context.Background(), client, &buf, "cid", "csecret", "tok-to-revoke")
+	err := runOAuthRevoke(context.Background(), client, &buf, "json", "cid", "csecret", "tok-to-revoke")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
+	}
+
+	out := buf.String()
+	if !strings.Contains(out, "req-1") {
+		t.Errorf("output missing request_id, got: %s", out)
 	}
 }
 
@@ -231,7 +236,7 @@ func TestRunOAuthRevoke_Error(t *testing.T) {
 
 	client := api.NewClient("", api.WithBaseURL(srv.URL), api.WithHTTPClient(srv.Client()))
 	var buf bytes.Buffer
-	err := runOAuthRevoke(context.Background(), client, &buf, "cid", "csecret", "nonexistent")
+	err := runOAuthRevoke(context.Background(), client, &buf, "json", "cid", "csecret", "nonexistent")
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}
