@@ -36,6 +36,14 @@ type tokenExchangeBody struct {
 	RedirectURI string `json:"redirect_uri,omitempty"`
 }
 
+// OAuthTokenInfo is the response from POST /v1/oauth/introspect.
+type OAuthTokenInfo struct {
+	Active    bool   `json:"active"`
+	Scope     string `json:"scope,omitempty"`
+	IAT       int64  `json:"iat,omitempty"`
+	RequestID string `json:"request_id,omitempty"`
+}
+
 // TokenExchange exchanges an authorization code for an access token.
 // Uses HTTP Basic auth with clientID and clientSecret.
 func (c *Client) TokenExchange(ctx context.Context, clientID, clientSecret, code, redirectURI string) (*OAuthToken, error) {
@@ -45,20 +53,7 @@ func (c *Client) TokenExchange(ctx context.Context, clientID, clientSecret, code
 		RedirectURI: redirectURI,
 	}
 
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(body); err != nil {
-		return nil, fmt.Errorf("encode body: %w", err)
-	}
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL+"/v1/oauth/token", &buf)
-	if err != nil {
-		return nil, fmt.Errorf("build request: %w", err)
-	}
-
-	creds := base64.StdEncoding.EncodeToString([]byte(clientID + ":" + clientSecret))
-	req.Header.Set("Authorization", "Basic "+creds)
-
-	raw, err := c.do(req)
+	raw, err := c.oauthPost(ctx, clientID, clientSecret, "/v1/oauth/token", body)
 	if err != nil {
 		return nil, err
 	}
@@ -68,4 +63,44 @@ func (c *Client) TokenExchange(ctx context.Context, clientID, clientSecret, code
 		return nil, fmt.Errorf("decode token: %w", err)
 	}
 	return &tok, nil
+}
+
+// IntrospectToken introspects an access token.
+// Uses HTTP Basic auth with clientID and clientSecret.
+func (c *Client) IntrospectToken(ctx context.Context, clientID, clientSecret, token string) (*OAuthTokenInfo, error) {
+	raw, err := c.oauthPost(ctx, clientID, clientSecret, "/v1/oauth/introspect", map[string]string{"token": token})
+	if err != nil {
+		return nil, err
+	}
+
+	var info OAuthTokenInfo
+	if err := json.Unmarshal(raw, &info); err != nil {
+		return nil, fmt.Errorf("decode introspect: %w", err)
+	}
+	return &info, nil
+}
+
+// RevokeToken revokes an access token.
+// Uses HTTP Basic auth with clientID and clientSecret.
+func (c *Client) RevokeToken(ctx context.Context, clientID, clientSecret, token string) error {
+	_, err := c.oauthPost(ctx, clientID, clientSecret, "/v1/oauth/revoke", map[string]string{"token": token})
+	return err
+}
+
+// oauthPost sends a POST request with Basic auth and JSON body.
+func (c *Client) oauthPost(ctx context.Context, clientID, clientSecret, path string, body interface{}) ([]byte, error) {
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(body); err != nil {
+		return nil, fmt.Errorf("encode body: %w", err)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL+path, &buf)
+	if err != nil {
+		return nil, fmt.Errorf("build request: %w", err)
+	}
+
+	creds := base64.StdEncoding.EncodeToString([]byte(clientID + ":" + clientSecret))
+	req.Header.Set("Authorization", "Basic "+creds)
+
+	return c.do(req)
 }

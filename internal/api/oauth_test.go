@@ -167,3 +167,159 @@ func TestTokenExchange_Unauthorized(t *testing.T) {
 		t.Errorf("Status = %d, want 401", apiErr.Status)
 	}
 }
+
+func TestIntrospectToken_Active(t *testing.T) {
+	t.Parallel()
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v1/oauth/introspect" {
+			http.Error(w, "not found", http.StatusNotFound)
+			return
+		}
+		if r.Method != http.MethodPost {
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		// verify Basic auth
+		authHdr := r.Header.Get("Authorization")
+		expected := "Basic " + base64.StdEncoding.EncodeToString([]byte("cid:csecret"))
+		if authHdr != expected {
+			http.Error(w, "bad auth", http.StatusUnauthorized)
+			return
+		}
+		var body map[string]string
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		if body["token"] == "" {
+			http.Error(w, "missing token", http.StatusBadRequest)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"active":true,"scope":"read_content","iat":1700000000,"request_id":"req-1"}`))
+	}))
+	defer srv.Close()
+
+	client := api.NewClient("", api.WithBaseURL(srv.URL))
+	info, err := client.IntrospectToken(t.Context(), "cid", "csecret", "tok-abc")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !info.Active {
+		t.Error("Active = false, want true")
+	}
+	if info.Scope != "read_content" {
+		t.Errorf("Scope = %q, want %q", info.Scope, "read_content")
+	}
+	if info.IAT != 1700000000 {
+		t.Errorf("IAT = %d, want 1700000000", info.IAT)
+	}
+}
+
+func TestIntrospectToken_Inactive(t *testing.T) {
+	t.Parallel()
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"active":false}`))
+	}))
+	defer srv.Close()
+
+	client := api.NewClient("", api.WithBaseURL(srv.URL))
+	info, err := client.IntrospectToken(t.Context(), "cid", "csecret", "expired-tok")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if info.Active {
+		t.Error("Active = true, want false")
+	}
+}
+
+func TestIntrospectToken_Error(t *testing.T) {
+	t.Parallel()
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusUnauthorized)
+		_, _ = w.Write([]byte(`{"status":401,"code":"unauthorized","message":"Invalid client credentials."}`))
+	}))
+	defer srv.Close()
+
+	client := api.NewClient("", api.WithBaseURL(srv.URL))
+	_, err := client.IntrospectToken(t.Context(), "bad-cid", "bad-csecret", "tok")
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+
+	var apiErr *api.APIError
+	if !api.AsAPIError(err, &apiErr) {
+		t.Fatalf("expected *APIError, got %T: %v", err, err)
+	}
+	if apiErr.Status != 401 {
+		t.Errorf("Status = %d, want 401", apiErr.Status)
+	}
+}
+
+func TestRevokeToken_Success(t *testing.T) {
+	t.Parallel()
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v1/oauth/revoke" {
+			http.Error(w, "not found", http.StatusNotFound)
+			return
+		}
+		if r.Method != http.MethodPost {
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		// verify Basic auth
+		authHdr := r.Header.Get("Authorization")
+		expected := "Basic " + base64.StdEncoding.EncodeToString([]byte("cid:csecret"))
+		if authHdr != expected {
+			http.Error(w, "bad auth", http.StatusUnauthorized)
+			return
+		}
+		var body map[string]string
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		if body["token"] != "tok-to-revoke" {
+			http.Error(w, "wrong token", http.StatusBadRequest)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"request_id":"req-revoke-1"}`))
+	}))
+	defer srv.Close()
+
+	client := api.NewClient("", api.WithBaseURL(srv.URL))
+	err := client.RevokeToken(t.Context(), "cid", "csecret", "tok-to-revoke")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestRevokeToken_Error(t *testing.T) {
+	t.Parallel()
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusBadRequest)
+		_, _ = w.Write([]byte(`{"status":400,"code":"invalid_request","message":"Token not found."}`))
+	}))
+	defer srv.Close()
+
+	client := api.NewClient("", api.WithBaseURL(srv.URL))
+	err := client.RevokeToken(t.Context(), "cid", "csecret", "nonexistent")
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+
+	var apiErr *api.APIError
+	if !api.AsAPIError(err, &apiErr) {
+		t.Fatalf("expected *APIError, got %T: %v", err, err)
+	}
+	if apiErr.Code != "invalid_request" {
+		t.Errorf("Code = %q, want %q", apiErr.Code, "invalid_request")
+	}
+}
