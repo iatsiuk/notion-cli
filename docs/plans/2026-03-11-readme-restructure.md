@@ -34,10 +34,10 @@
 - [x] write From source section (Go 1.23+, git clone, make build)
 
 ### Task 2: Write authentication and configuration sections
-- [ ] write Authentication section (NOTION_TOKEN env var, --token flag, precedence)
-- [ ] write Global Flags table (--token, --format, --quiet, --verbose)
-- [ ] write Output Formats section (auto-detection, json/jsonl/raw/table)
-- [ ] write Exit Codes table
+- [x] write Authentication section (NOTION_TOKEN env var, --token flag, precedence)
+- [x] write Global Flags table (--token, --format, --quiet, --verbose)
+- [x] write Output Formats section (auto-detection, json/jsonl/raw/table)
+- [x] write Exit Codes table
 
 ### Task 3: Write Search command section
 - [ ] write `search` command with flags (--type, --sort) and examples

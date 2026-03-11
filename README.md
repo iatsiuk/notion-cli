@@ -30,3 +30,49 @@ The binary is placed at `./notion-cli`. Move it to a directory in your PATH:
 ```
 mv notion-cli /usr/local/bin/notion-cli
 ```
+
+## Authentication
+
+Set the `NOTION_TOKEN` environment variable to your Notion integration token:
+
+```
+export NOTION_TOKEN=secret_...
+```
+
+The `--token` flag overrides the environment variable for a single invocation:
+
+```
+notion-cli --token secret_... page get <page-id>
+```
+
+Token precedence: `--token` flag > `NOTION_TOKEN` env var.
+
+## Global Flags
+
+```
+-t, --token string    Notion API token (overrides NOTION_TOKEN)
+-f, --format string   Output format: auto|json|jsonl|raw|table (default "auto")
+    --quiet           Suppress non-essential output
+    --verbose         Enable verbose output
+```
+
+## Output Formats
+
+The default format is `auto`: JSON for interactive terminals, JSON Lines for pipes.
+
+| Format  | Description                     |
+|---------|---------------------------------|
+| `json`  | Pretty-printed JSON array       |
+| `jsonl` | One JSON object per line        |
+| `raw`   | Raw API response                |
+| `table` | Human-readable table            |
+| `auto`  | `json` on TTY, `jsonl` on pipe  |
+
+## Exit Codes
+
+| Code | Meaning                     |
+|------|-----------------------------|
+| 0    | Success                     |
+| 1    | Connection or network error |
+| 2    | API error                   |
+| 3    | Authentication error        |
