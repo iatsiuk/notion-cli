@@ -7,6 +7,25 @@ import (
 	"net/url"
 )
 
+// UpdateBlockRequest is the body for updating a block.
+// TypeContent maps block type names to their content (e.g. "paragraph" -> {...}).
+type UpdateBlockRequest struct {
+	Archived    *bool          `json:"archived,omitempty"`
+	TypeContent map[string]any `json:"-"`
+}
+
+// MarshalJSON merges TypeContent fields into the top-level JSON object.
+func (r *UpdateBlockRequest) MarshalJSON() ([]byte, error) {
+	m := make(map[string]any)
+	for k, v := range r.TypeContent {
+		m[k] = v
+	}
+	if r.Archived != nil {
+		m["archived"] = *r.Archived
+	}
+	return json.Marshal(m)
+}
+
 // Block represents a Notion block object.
 type Block struct {
 	Object         string      `json:"object"`
@@ -48,6 +67,19 @@ type Block struct {
 	SyncedBlock      json.RawMessage `json:"synced_block,omitempty"`
 	Template         json.RawMessage `json:"template,omitempty"`
 	LinkPreview      json.RawMessage `json:"link_preview,omitempty"`
+}
+
+// UpdateBlock updates a block by ID.
+func (c *Client) UpdateBlock(ctx context.Context, blockID string, req *UpdateBlockRequest) (*Block, error) {
+	raw, err := c.Patch(ctx, "/v1/blocks/"+url.PathEscape(blockID), req)
+	if err != nil {
+		return nil, err
+	}
+	var b Block
+	if err := json.Unmarshal(raw, &b); err != nil {
+		return nil, fmt.Errorf("decode block: %w", err)
+	}
+	return &b, nil
 }
 
 // GetBlock retrieves a block by ID.
