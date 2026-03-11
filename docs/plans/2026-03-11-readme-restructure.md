@@ -95,7 +95,7 @@
 - [x] write `oauth revoke` with flags and example
 
 ### Task 12: Write Status command section
-- [ ] write `status` command description and example
+- [x] write `status` command description and example
 
 ### Task 13: Write Pipe-friendly Workflows section
 - [ ] write 3-4 pipeline examples using jq with notion-cli commands

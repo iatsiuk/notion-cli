@@ -647,3 +647,13 @@ Flags:
 ```
 notion-cli oauth revoke --client-id abc123 --client-secret secret456 --token ntn_token_here
 ```
+
+## Status
+
+Check connectivity to the Notion API. Sends a request to verify that the configured token is valid and the API is reachable.
+
+```
+notion-cli status
+```
+
+Prints `ok` on success. Returns a non-zero exit code on connection or authentication errors.
