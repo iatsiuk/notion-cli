@@ -76,7 +76,7 @@ func NewDBCreateCmd() *cobra.Command {
 	}
 	cmd.Flags().StringVar(&parentFlag, "parent", "", "Parent: page_id:id or workspace")
 	cmd.Flags().StringVar(&titleFlag, "title", "", "Database title (plain text)")
-	cmd.Flags().StringVar(&propertiesFlag, "properties", "{}", "Properties schema as JSON object")
+	cmd.Flags().StringVar(&propertiesFlag, "properties", "", "Properties schema as JSON object")
 	_ = cmd.MarkFlagRequired("parent")
 	return cmd
 }
@@ -85,11 +85,6 @@ func runDBCreate(ctx context.Context, client *api.Client, w io.Writer, format, p
 	parent, err := parseDBParent(parentStr)
 	if err != nil {
 		return fmt.Errorf("--parent: %w", err)
-	}
-
-	props, err := parseJSONObject("--properties", propertiesJSON)
-	if err != nil {
-		return err
 	}
 
 	req := &api.CreateDatabaseRequest{
@@ -101,7 +96,13 @@ func runDBCreate(ctx context.Context, client *api.Client, w io.Writer, format, p
 			"text": map[string]any{"content": title},
 		}}
 	}
-	req.Properties = props
+	if propertiesJSON != "" {
+		props, err := parseJSONObject("--properties", propertiesJSON)
+		if err != nil {
+			return err
+		}
+		req.Properties = props
+	}
 
 	db, err := client.CreateDatabase(ctx, req)
 	if err != nil {
@@ -229,12 +230,8 @@ func runDBQuery(ctx context.Context, client *api.Client, w io.Writer, format, da
 	req := &api.QueryDatabaseRequest{}
 
 	if filterJSON != "" {
-		var filterObj map[string]any
-		if err := json.Unmarshal([]byte(filterJSON), &filterObj); err != nil {
-			return fmt.Errorf("--filter: invalid JSON: %w", err)
-		}
-		if filterObj == nil {
-			return fmt.Errorf("--filter: must be a JSON object, got null")
+		if _, err := parseJSONObject("--filter", filterJSON); err != nil {
+			return err
 		}
 		req.Filter = json.RawMessage(filterJSON)
 	}
