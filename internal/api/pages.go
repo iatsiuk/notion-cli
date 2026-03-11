@@ -15,11 +15,12 @@ type PartialUser struct {
 
 // Parent represents the parent of a Notion page.
 type Parent struct {
-	Type       string `json:"type"`
-	DatabaseID string `json:"database_id,omitempty"`
-	PageID     string `json:"page_id,omitempty"`
-	BlockID    string `json:"block_id,omitempty"`
-	Workspace  bool   `json:"workspace,omitempty"`
+	Type         string `json:"type"`
+	DatabaseID   string `json:"database_id,omitempty"`
+	PageID       string `json:"page_id,omitempty"`
+	BlockID      string `json:"block_id,omitempty"`
+	Workspace    bool   `json:"workspace,omitempty"`
+	DataSourceID string `json:"data_source_id,omitempty"`
 }
 
 // Page represents a Notion page object.
@@ -164,8 +165,8 @@ type movePageRequest struct {
 }
 
 // MovePage moves a page to a new parent.
-func (c *Client) MovePage(ctx context.Context, pageID string, parent Parent) (*Page, error) {
-	raw, err := c.Post(ctx, "/v1/pages/"+url.PathEscape(pageID)+"/move", &movePageRequest{Parent: parent})
+func (c *Client) MovePage(ctx context.Context, pageID string, parent *Parent) (*Page, error) {
+	raw, err := c.Post(ctx, "/v1/pages/"+url.PathEscape(pageID)+"/move", &movePageRequest{Parent: *parent})
 	if err != nil {
 		return nil, err
 	}

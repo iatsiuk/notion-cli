@@ -427,7 +427,7 @@ func TestRunPageMove_SendsCorrectParent(t *testing.T) {
 
 	client := api.NewClient("token", api.WithBaseURL(srv.URL), api.WithHTTPClient(srv.Client()))
 	var buf bytes.Buffer
-	err := runPageMove(context.Background(), client, &buf, "json", "page-1", "database_id:db-2")
+	err := runPageMove(context.Background(), client, &buf, "json", "page-1", "data_source_id:ds-2")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -435,8 +435,8 @@ func TestRunPageMove_SendsCorrectParent(t *testing.T) {
 	if !ok {
 		t.Fatalf("parent missing in request body")
 	}
-	if parent["database_id"] != "db-2" {
-		t.Errorf("parent.database_id = %v, want %q", parent["database_id"], "db-2")
+	if parent["data_source_id"] != "ds-2" {
+		t.Errorf("parent.data_source_id = %v, want %q", parent["data_source_id"], "ds-2")
 	}
 }
 

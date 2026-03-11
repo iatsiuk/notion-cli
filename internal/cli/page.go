@@ -74,7 +74,7 @@ func NewPageCreateCmd() *cobra.Command {
 }
 
 // parseParent parses "type:id" into a Parent struct.
-// Supported types: database_id, page_id.
+// Supported types: database_id, page_id, data_source_id.
 func parseParent(s string) (api.Parent, error) {
 	idx := strings.Index(s, ":")
 	if idx < 0 {
@@ -86,8 +86,28 @@ func parseParent(s string) (api.Parent, error) {
 		return api.Parent{Type: "database_id", DatabaseID: id}, nil
 	case "page_id":
 		return api.Parent{Type: "page_id", PageID: id}, nil
+	case "data_source_id":
+		return api.Parent{Type: "data_source_id", DataSourceID: id}, nil
 	default:
-		return api.Parent{}, fmt.Errorf("unsupported parent type %q: use database_id or page_id", typ)
+		return api.Parent{}, fmt.Errorf("unsupported parent type %q: use database_id, page_id, or data_source_id", typ)
+	}
+}
+
+// parseMoveParent parses "type:id" for page move.
+// Supported types: page_id, data_source_id (database_id is not valid for move).
+func parseMoveParent(s string) (api.Parent, error) {
+	idx := strings.Index(s, ":")
+	if idx < 0 {
+		return api.Parent{}, fmt.Errorf("invalid parent format %q: expected type:id", s)
+	}
+	typ, id := s[:idx], s[idx+1:]
+	switch typ {
+	case "page_id":
+		return api.Parent{Type: "page_id", PageID: id}, nil
+	case "data_source_id":
+		return api.Parent{Type: "data_source_id", DataSourceID: id}, nil
+	default:
+		return api.Parent{}, fmt.Errorf("unsupported parent type %q for move: use page_id or data_source_id", typ)
 	}
 }
 
@@ -178,18 +198,18 @@ func NewPageMoveCmd() *cobra.Command {
 			return runPageMove(cmd.Context(), newClientFromCfg(), cmd.OutOrStdout(), cfg.Format, args[0], parentFlag)
 		},
 	}
-	cmd.Flags().StringVar(&parentFlag, "parent", "", "New parent: type:id (e.g. database_id:abc or page_id:abc)")
+	cmd.Flags().StringVar(&parentFlag, "parent", "", "New parent: type:id (e.g. page_id:abc or data_source_id:abc)")
 	_ = cmd.MarkFlagRequired("parent")
 	return cmd
 }
 
 func runPageMove(ctx context.Context, client *api.Client, w io.Writer, format, pageID, parentStr string) error {
-	parent, err := parseParent(parentStr)
+	parent, err := parseMoveParent(parentStr)
 	if err != nil {
 		return fmt.Errorf("--parent: %w", err)
 	}
 
-	page, err := client.MovePage(ctx, pageID, parent)
+	page, err := client.MovePage(ctx, pageID, &parent)
 	if err != nil {
 		return mapAPIError(err)
 	}

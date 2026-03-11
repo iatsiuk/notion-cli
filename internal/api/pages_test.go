@@ -538,7 +538,7 @@ func TestMovePage_MovesToNewParent(t *testing.T) {
 	defer srv.Close()
 
 	client := api.NewClient("token", api.WithBaseURL(srv.URL))
-	page, err := client.MovePage(t.Context(), "page-1", api.Parent{Type: "page_id", PageID: "parent-2"})
+	page, err := client.MovePage(t.Context(), "page-1", &api.Parent{Type: "page_id", PageID: "parent-2"})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -564,7 +564,7 @@ func TestMovePage_Error(t *testing.T) {
 	defer srv.Close()
 
 	client := api.NewClient("token", api.WithBaseURL(srv.URL))
-	_, err := client.MovePage(t.Context(), "bad-id", api.Parent{Type: "page_id", PageID: "parent-1"})
+	_, err := client.MovePage(t.Context(), "bad-id", &api.Parent{Type: "page_id", PageID: "parent-1"})
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}
