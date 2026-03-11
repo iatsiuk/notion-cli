@@ -26,6 +26,7 @@ func NewPageCmd() *cobra.Command {
 	cmd.AddCommand(NewPageCreateCmd())
 	cmd.AddCommand(NewPageUpdateCmd())
 	cmd.AddCommand(NewPagePropertyCmd())
+	cmd.AddCommand(NewPageMoveCmd())
 	return cmd
 }
 
@@ -158,6 +159,41 @@ func runPageProperty(ctx context.Context, client *api.Client, w io.Writer, forma
 		return fmt.Errorf("output format: %w", err)
 	}
 	return f.Format(w, raw)
+}
+
+// NewPageMoveCmd returns the "page move" cobra subcommand.
+func NewPageMoveCmd() *cobra.Command {
+	var parentFlag string
+
+	cmd := &cobra.Command{
+		Use:   "move <page_id>",
+		Short: "Move a Notion page to a new parent",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return runPageMove(cmd.Context(), newClientFromCfg(), cmd.OutOrStdout(), cfg.Format, args[0], parentFlag)
+		},
+	}
+	cmd.Flags().StringVar(&parentFlag, "parent", "", "New parent: type:id (e.g. database_id:abc or page_id:abc)")
+	_ = cmd.MarkFlagRequired("parent")
+	return cmd
+}
+
+func runPageMove(ctx context.Context, client *api.Client, w io.Writer, format, pageID, parentStr string) error {
+	parent, err := parseParent(parentStr)
+	if err != nil {
+		return fmt.Errorf("--parent: %w", err)
+	}
+
+	page, err := client.MovePage(ctx, pageID, parent)
+	if err != nil {
+		return mapAPIError(err)
+	}
+
+	f, err := output.New(format, isTerminal(w))
+	if err != nil {
+		return fmt.Errorf("output format: %w", err)
+	}
+	return f.Format(w, page)
 }
 
 func runPageCreate(ctx context.Context, client *api.Client, w io.Writer, format, parentStr, propertiesJSON string) error {

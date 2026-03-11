@@ -517,3 +517,62 @@ func TestGetPageProperty_Error(t *testing.T) {
 		t.Errorf("Status = %d, want 404", apiErr.Status)
 	}
 }
+
+func TestMovePage_MovesToNewParent(t *testing.T) {
+	t.Parallel()
+
+	var gotBody map[string]any
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v1/pages/page-1/move" || r.Method != http.MethodPut {
+			http.Error(w, "not found", http.StatusNotFound)
+			return
+		}
+		if err := json.NewDecoder(r.Body).Decode(&gotBody); err != nil {
+			http.Error(w, "bad request", http.StatusBadRequest)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(pageJSON))
+	}))
+	defer srv.Close()
+
+	client := api.NewClient("token", api.WithBaseURL(srv.URL))
+	page, err := client.MovePage(t.Context(), "page-1", api.Parent{Type: "page_id", PageID: "parent-2"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if page.ID != "page-1" {
+		t.Errorf("ID = %q, want %q", page.ID, "page-1")
+	}
+	parent, ok := gotBody["parent"].(map[string]any)
+	if !ok {
+		t.Fatalf("parent missing in request body")
+	}
+	if parent["page_id"] != "parent-2" {
+		t.Errorf("parent.page_id = %v, want %q", parent["page_id"], "parent-2")
+	}
+}
+
+func TestMovePage_Error(t *testing.T) {
+	t.Parallel()
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+		_, _ = w.Write([]byte(`{"status":404,"code":"object_not_found","message":"page not found"}`))
+	}))
+	defer srv.Close()
+
+	client := api.NewClient("token", api.WithBaseURL(srv.URL))
+	_, err := client.MovePage(t.Context(), "bad-id", api.Parent{Type: "page_id", PageID: "parent-1"})
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+
+	var apiErr *api.APIError
+	if !api.AsAPIError(err, &apiErr) {
+		t.Fatalf("expected *APIError, got %T: %v", err, err)
+	}
+	if apiErr.Status != 404 {
+		t.Errorf("Status = %d, want 404", apiErr.Status)
+	}
+}

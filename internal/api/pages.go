@@ -146,6 +146,24 @@ func (c *Client) GetPageProperty(ctx context.Context, pageID, propertyID string)
 	return out, nil
 }
 
+// movePageRequest is the body for moving a page.
+type movePageRequest struct {
+	Parent Parent `json:"parent"`
+}
+
+// MovePage moves a page to a new parent.
+func (c *Client) MovePage(ctx context.Context, pageID string, parent Parent) (*Page, error) {
+	raw, err := c.Put(ctx, "/v1/pages/"+url.PathEscape(pageID)+"/move", &movePageRequest{Parent: parent})
+	if err != nil {
+		return nil, err
+	}
+	var p Page
+	if err := json.Unmarshal(raw, &p); err != nil {
+		return nil, fmt.Errorf("decode page: %w", err)
+	}
+	return &p, nil
+}
+
 // GetPage retrieves a page by ID.
 func (c *Client) GetPage(ctx context.Context, pageID string) (*Page, error) {
 	raw, err := c.Get(ctx, "/v1/pages/"+url.PathEscape(pageID), nil)

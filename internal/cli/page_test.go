@@ -391,3 +391,95 @@ func TestRunPageProperty_APIError(t *testing.T) {
 		t.Errorf("expected exit code %d, got %d", ExitAPI, cliErr.Code)
 	}
 }
+
+func TestRunPageMove_OutputsPage(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v1/pages/page-1/move" || r.Method != http.MethodPut {
+			http.Error(w, "not found", http.StatusNotFound)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(testPageJSON))
+	}))
+	defer srv.Close()
+
+	client := api.NewClient("token", api.WithBaseURL(srv.URL), api.WithHTTPClient(srv.Client()))
+	var buf bytes.Buffer
+	err := runPageMove(context.Background(), client, &buf, "json", "page-1", "page_id:parent-2")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(buf.String(), "page-1") {
+		t.Errorf("output missing page ID, got: %s", buf.String())
+	}
+}
+
+func TestRunPageMove_SendsCorrectParent(t *testing.T) {
+	t.Parallel()
+	var gotBody map[string]any
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_ = json.NewDecoder(r.Body).Decode(&gotBody)
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(testPageJSON))
+	}))
+	defer srv.Close()
+
+	client := api.NewClient("token", api.WithBaseURL(srv.URL), api.WithHTTPClient(srv.Client()))
+	var buf bytes.Buffer
+	err := runPageMove(context.Background(), client, &buf, "json", "page-1", "database_id:db-2")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	parent, ok := gotBody["parent"].(map[string]any)
+	if !ok {
+		t.Fatalf("parent missing in request body")
+	}
+	if parent["database_id"] != "db-2" {
+		t.Errorf("parent.database_id = %v, want %q", parent["database_id"], "db-2")
+	}
+}
+
+func TestRunPageMove_InvalidParentFormat(t *testing.T) {
+	t.Parallel()
+	client := api.NewClient("token")
+	var buf bytes.Buffer
+	err := runPageMove(context.Background(), client, &buf, "json", "page-1", "invalid")
+	if err == nil {
+		t.Fatal("expected error for invalid parent format, got nil")
+	}
+}
+
+func TestRunPageMove_MissingArgument(t *testing.T) {
+	t.Parallel()
+	cmd := NewPageMoveCmd()
+	cmd.SetArgs([]string{})
+	err := cmd.Execute()
+	if err == nil {
+		t.Fatal("expected error for missing argument, got nil")
+	}
+}
+
+func TestRunPageMove_APIError(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+		_, _ = w.Write([]byte(`{"status":404,"code":"object_not_found","message":"page not found"}`))
+	}))
+	defer srv.Close()
+
+	client := api.NewClient("token", api.WithBaseURL(srv.URL), api.WithHTTPClient(srv.Client()))
+	var buf bytes.Buffer
+	err := runPageMove(context.Background(), client, &buf, "json", "bad-id", "page_id:parent-1")
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+
+	var cliErr *CLIError
+	if !errors.As(err, &cliErr) {
+		t.Fatalf("expected CLIError, got %T: %v", err, err)
+	}
+	if cliErr.Code != ExitAPI {
+		t.Errorf("expected exit code %d, got %d", ExitAPI, cliErr.Code)
+	}
+}
