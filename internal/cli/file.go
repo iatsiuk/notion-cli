@@ -200,6 +200,12 @@ func runFileUpload(ctx context.Context, client *api.Client, w io.Writer, format,
 		contentType = "application/octet-stream"
 	}
 
+	f, err := os.Open(filePath)
+	if err != nil {
+		return fmt.Errorf("open file: %w", err)
+	}
+	defer func() { _ = f.Close() }()
+
 	fu, err := client.CreateFileUpload(ctx, api.CreateFileUploadParams{
 		Filename:    filename,
 		ContentType: contentType,
@@ -207,12 +213,6 @@ func runFileUpload(ctx context.Context, client *api.Client, w io.Writer, format,
 	if err != nil {
 		return mapAPIError(err)
 	}
-
-	f, err := os.Open(filePath)
-	if err != nil {
-		return fmt.Errorf("open file: %w", err)
-	}
-	defer func() { _ = f.Close() }()
 
 	fu, err = client.SendFileContent(ctx, fu.ID, filename, contentType, f, 0)
 	if err != nil {

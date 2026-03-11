@@ -182,6 +182,9 @@ func TestRunFileDelete_NotFound(t *testing.T) {
 	if !errors.As(err, &cliErr) {
 		t.Fatalf("expected CLIError, got %T: %v", err, err)
 	}
+	if cliErr.Code != ExitAPI {
+		t.Errorf("expected exit code %d, got %d", ExitAPI, cliErr.Code)
+	}
 }
 
 func TestRunFileSend_SendsMultipart(t *testing.T) {
@@ -199,7 +202,11 @@ func TestRunFileSend_SendsMultipart(t *testing.T) {
 			return
 		}
 		mr := multipart.NewReader(r.Body, params["boundary"])
-		p, _ := mr.NextPart()
+		p, err := mr.NextPart()
+		if p == nil {
+			http.Error(w, "expected multipart part, got nil: "+err.Error(), http.StatusBadRequest)
+			return
+		}
 		gotContentType = p.Header.Get("Content-Type")
 		_, params2, _ := mime.ParseMediaType(p.Header.Get("Content-Disposition"))
 		gotFilename = params2["filename"]
@@ -318,7 +325,7 @@ func TestNewFileCmd_HasSubcommands(t *testing.T) {
 	for _, sub := range cmd.Commands() {
 		names[sub.Name()] = true
 	}
-	for _, want := range []string{"create", "get", "delete", "send", "complete"} {
+	for _, want := range []string{"create", "get", "delete", "send", "complete", "upload"} {
 		if !names[want] {
 			t.Errorf("missing subcommand %q", want)
 		}
