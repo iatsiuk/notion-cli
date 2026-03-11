@@ -387,3 +387,42 @@ notion-cli comment get <comment_id>
 ```
 notion-cli comment get abc123
 ```
+
+## User Commands
+
+### user me
+
+Get the currently authenticated user (the bot or user associated with the token).
+
+```
+notion-cli user me
+```
+
+```
+notion-cli user me
+```
+
+### user list
+
+List all users in the workspace.
+
+```
+notion-cli user list
+```
+
+```
+notion-cli user list
+notion-cli user list --format table
+```
+
+### user get
+
+Get a workspace user by ID.
+
+```
+notion-cli user get <user_id>
+```
+
+```
+notion-cli user get abc123
+```

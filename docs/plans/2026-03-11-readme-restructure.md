@@ -70,9 +70,9 @@
 - [x] write `comment get` with example
 
 ### Task 8: Write User Commands section
-- [ ] write `user me` with example
-- [ ] write `user list` with example
-- [ ] write `user get` with example
+- [x] write `user me` with example
+- [x] write `user list` with example
+- [x] write `user get` with example
 
 ### Task 9: Write File Upload Commands section
 - [ ] write `file create` with flags and example
