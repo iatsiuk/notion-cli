@@ -25,13 +25,13 @@
 ## Implementation Steps
 
 ### Task 1: File upload types and create API method
-- [ ] write tests in `internal/api/files_test.go`:
+- [x] write tests in `internal/api/files_test.go`:
   - CreateFileUpload initiates upload
   - returns file upload object with ID
   - error handling
-- [ ] define FileUpload struct in `internal/api/files.go` matching openapi.json schema
-- [ ] implement CreateFileUpload method on Client (POST /v1/file_uploads)
-- [ ] run tests - must pass before next task
+- [x] define FileUpload struct in `internal/api/files.go` matching openapi.json schema
+- [x] implement CreateFileUpload method on Client (POST /v1/file_uploads)
+- [x] run tests - must pass before next task
 
 ### Task 2: Get and delete file upload API methods
 - [ ] write tests for GetFileUpload and DeleteFileUpload:
