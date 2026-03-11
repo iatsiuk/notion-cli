@@ -49,6 +49,7 @@ func NewRootCmd() *cobra.Command {
 	}
 
 	cmd.AddCommand(NewStatusCmd())
+	cmd.AddCommand(NewUserCmd())
 
 	return cmd
 }

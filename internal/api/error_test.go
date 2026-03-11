@@ -102,6 +102,7 @@ func TestAPIErrorExitCodes(t *testing.T) {
 	}{
 		{"400 -> ExitAPI", http.StatusBadRequest, cli.ExitAPI},
 		{"401 -> ExitAuth", http.StatusUnauthorized, cli.ExitAuth},
+		{"403 -> ExitAuth", http.StatusForbidden, cli.ExitAuth},
 		{"404 -> ExitAPI", http.StatusNotFound, cli.ExitAPI},
 		{"429 -> ExitAPI", http.StatusTooManyRequests, cli.ExitAPI},
 		{"500 -> ExitAPI", http.StatusInternalServerError, cli.ExitAPI},

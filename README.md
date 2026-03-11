@@ -31,6 +31,15 @@ notion-cli db query <database-id>
 
 # server status
 notion-cli status
+
+# get current user
+notion-cli user me
+
+# list workspace users
+notion-cli user list
+
+# get a user by ID
+notion-cli user get <user-id>
 ```
 
 ## Global Flags
