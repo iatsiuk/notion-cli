@@ -590,3 +590,60 @@ notion-cli datasource templates <data_source_id>
 ```
 notion-cli datasource templates abc123
 ```
+
+## OAuth Commands
+
+Manage OAuth tokens. These commands use HTTP Basic authentication (client ID and secret) instead of a bearer token.
+
+### oauth token
+
+Exchange an authorization code for an access token.
+
+```
+notion-cli oauth token [flags]
+
+Flags:
+    --code string            Authorization code from OAuth redirect (required)
+    --client-id string       OAuth client ID (required)
+    --client-secret string   OAuth client secret (required)
+    --redirect-uri string    Redirect URI used in authorization request
+```
+
+```
+notion-cli oauth token --client-id abc123 --client-secret secret456 --code auth_code_here
+notion-cli oauth token --client-id abc123 --client-secret secret456 --code auth_code_here --redirect-uri https://example.com/callback
+```
+
+### oauth introspect
+
+Introspect an access token to retrieve its metadata.
+
+```
+notion-cli oauth introspect [flags]
+
+Flags:
+    --token string           Access token to introspect (required)
+    --client-id string       OAuth client ID (required)
+    --client-secret string   OAuth client secret (required)
+```
+
+```
+notion-cli oauth introspect --client-id abc123 --client-secret secret456 --token ntn_token_here
+```
+
+### oauth revoke
+
+Revoke an access token.
+
+```
+notion-cli oauth revoke [flags]
+
+Flags:
+    --token string           Access token to revoke (required)
+    --client-id string       OAuth client ID (required)
+    --client-secret string   OAuth client secret (required)
+```
+
+```
+notion-cli oauth revoke --client-id abc123 --client-secret secret456 --token ntn_token_here
+```

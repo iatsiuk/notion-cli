@@ -90,9 +90,9 @@
 - [x] write `datasource templates` with example
 
 ### Task 11: Write OAuth Commands section
-- [ ] write `oauth token` with flags and example
-- [ ] write `oauth introspect` with flags and example
-- [ ] write `oauth revoke` with flags and example
+- [x] write `oauth token` with flags and example
+- [x] write `oauth introspect` with flags and example
+- [x] write `oauth revoke` with flags and example
 
 ### Task 12: Write Status command section
 - [ ] write `status` command description and example
