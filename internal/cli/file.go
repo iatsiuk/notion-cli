@@ -107,6 +107,9 @@ func NewFileSendCmd() *cobra.Command {
 }
 
 func runFileSend(ctx context.Context, client *api.Client, w io.Writer, format, fileUploadID, filePath, contentType string, partNumber int) error {
+	if partNumber < 0 {
+		return fmt.Errorf("part number must be >= 0")
+	}
 	f, err := os.Open(filePath)
 	if err != nil {
 		return fmt.Errorf("open file: %w", err)
