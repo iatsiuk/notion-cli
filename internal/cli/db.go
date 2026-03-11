@@ -231,7 +231,7 @@ func runDBQuery(ctx context.Context, client *api.Client, w io.Writer, format, da
 	if filterJSON != "" {
 		var filterObj map[string]any
 		if err := json.Unmarshal([]byte(filterJSON), &filterObj); err != nil {
-			return fmt.Errorf("--filter: must be a JSON object")
+			return fmt.Errorf("--filter: invalid JSON: %w", err)
 		}
 		if filterObj == nil {
 			return fmt.Errorf("--filter: must be a JSON object, got null")
@@ -241,7 +241,7 @@ func runDBQuery(ctx context.Context, client *api.Client, w io.Writer, format, da
 	if sortJSON != "" {
 		var sortArr []any
 		if err := json.Unmarshal([]byte(sortJSON), &sortArr); err != nil {
-			return fmt.Errorf("--sort: must be a JSON array")
+			return fmt.Errorf("--sort: invalid JSON: %w", err)
 		}
 		if sortArr == nil {
 			return fmt.Errorf("--sort: must be a JSON array, got null")
