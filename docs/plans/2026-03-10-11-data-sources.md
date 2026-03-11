@@ -64,11 +64,11 @@
 - [x] run tests - must pass before next task
 
 ### Task 5: Verify acceptance criteria
-- [ ] verify all datasource commands work
-- [ ] verify query with filters
-- [ ] verify pagination in list and query
-- [ ] run full test suite with `make test`
-- [ ] run linter with `make build` - all issues must be fixed
+- [x] verify all datasource commands work
+- [x] verify query with filters
+- [x] verify pagination in list and query
+- [x] run full test suite with `make test`
+- [x] run linter with `make build` - all issues must be fixed
 
 ## Technical Details
 - DataSource struct: id, object, type, name, config
