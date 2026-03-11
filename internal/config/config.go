@@ -62,6 +62,17 @@ func resolveFormat(flagVal string, isTTY bool) (string, error) {
 	return flagVal, nil
 }
 
+// LoadNoToken loads config without requiring an API token.
+// Used by commands that authenticate via other means (e.g., OAuth Basic auth).
+func LoadNoToken(formatFlag string, quiet, verbose bool) (*Config, error) {
+	isTTY := isTerminal()
+	format, err := resolveFormat(formatFlag, isTTY)
+	if err != nil {
+		return nil, err
+	}
+	return &Config{Format: format, Quiet: quiet, Verbose: verbose}, nil
+}
+
 // isTerminal reports whether os.Stdout is connected to a terminal.
 func isTerminal() bool {
 	fi, err := os.Stdout.Stat()
