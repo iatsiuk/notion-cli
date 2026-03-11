@@ -42,11 +42,25 @@ notion-cli page move <page-id> --parent page_id:<parent-page-id>
 # get page content as markdown (raw text, ignores --format)
 notion-cli page markdown <page-id>
 
+# get a database
+notion-cli db get <database-id>
+
 # list databases
 notion-cli db list
 
+# create a database
+notion-cli db create --parent page_id:<page-id> --title "My DB" --properties '{}'
+notion-cli db create --parent workspace --title "My DB"
+
+# update a database
+notion-cli db update <database-id> --title "New Title"
+notion-cli db update <database-id> --description "New description"
+notion-cli db update <database-id> --properties '{"Status":{"select":{}}}'
+
 # query a database
 notion-cli db query <database-id>
+notion-cli db query <database-id> --filter '{"property":"Status","select":{"equals":"Done"}}'
+notion-cli db query <database-id> --sort '[{"property":"Name","direction":"ascending"}]'
 
 # server status
 notion-cli status
