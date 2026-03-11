@@ -91,41 +91,30 @@ func (c *Client) UpdateBlock(ctx context.Context, blockID string, req *UpdateBlo
 func (c *Client) ListBlockChildren(ctx context.Context, blockID string) ([]Block, error) {
 	path := "/v1/blocks/" + url.PathEscape(blockID) + "/children"
 	all := make([]Block, 0)
-	var cursor string
-	for {
-		params := url.Values{}
-		if cursor != "" {
-			params.Set("start_cursor", cursor)
-		}
-		raw, err := c.Get(ctx, path, params)
-		if err != nil {
-			return nil, err
-		}
+	err := Paginate(ctx, c, path, nil, func(raw json.RawMessage) error {
 		var resp listResponse
 		if err := json.Unmarshal(raw, &resp); err != nil {
-			return nil, fmt.Errorf("decode children response: %w", err)
+			return fmt.Errorf("decode children response: %w", err)
 		}
 		for _, r := range resp.Results {
 			var b Block
 			if err := json.Unmarshal(r, &b); err != nil {
-				return nil, fmt.Errorf("decode block: %w", err)
+				return fmt.Errorf("decode block: %w", err)
 			}
 			all = append(all, b)
 		}
-		if !resp.HasMore {
-			return all, nil
-		}
-		if resp.NextCursor == nil {
-			return nil, fmt.Errorf("pagination: has_more is true but next_cursor is nil")
-		}
-		cursor = *resp.NextCursor
+		return nil
+	})
+	if err != nil {
+		return nil, err
 	}
+	return all, nil
 }
 
 // AppendBlockChildren appends child blocks to a block and returns the created blocks.
 func (c *Client) AppendBlockChildren(ctx context.Context, blockID string, children []map[string]any) ([]Block, error) {
-	if children == nil {
-		children = []map[string]any{}
+	if len(children) == 0 {
+		return nil, fmt.Errorf("children must be non-empty")
 	}
 	body := map[string]any{"children": children}
 	raw, err := c.Patch(ctx, "/v1/blocks/"+url.PathEscape(blockID)+"/children", body)

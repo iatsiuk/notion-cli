@@ -631,7 +631,8 @@ func TestAppendBlockChildren_NotFound(t *testing.T) {
 	defer srv.Close()
 
 	client := api.NewClient("token", api.WithBaseURL(srv.URL))
-	_, err := client.AppendBlockChildren(t.Context(), "nonexistent", nil)
+	children := []map[string]any{{"type": "paragraph"}}
+	_, err := client.AppendBlockChildren(t.Context(), "nonexistent", children)
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}
