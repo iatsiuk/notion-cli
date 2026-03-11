@@ -266,3 +266,76 @@ notion-cli db query abc123
 notion-cli db query abc123 --filter '{"property":"Status","select":{"equals":"Done"}}'
 notion-cli db query abc123 --sort '[{"property":"Name","direction":"ascending"}]'
 ```
+
+## Block Commands
+
+### block get
+
+Get a block by ID.
+
+```
+notion-cli block get <block_id>
+```
+
+```
+notion-cli block get abc123
+```
+
+### block update
+
+Update block content or archive/unarchive a block.
+
+```
+notion-cli block update <block_id> [flags]
+
+Flags:
+    --data string   Block type content as JSON object (default "{}")
+    --archive       Archive the block
+    --unarchive     Unarchive the block
+```
+
+```
+notion-cli block update abc123 --data '{"paragraph":{"rich_text":[{"text":{"content":"Updated text"}}]}}'
+notion-cli block update abc123 --archive
+notion-cli block update abc123 --unarchive
+```
+
+### block children
+
+List child blocks of a block.
+
+```
+notion-cli block children <block_id>
+```
+
+```
+notion-cli block children abc123
+```
+
+### block append
+
+Append child blocks to a block. Children can be provided via the `--children` flag or piped via stdin.
+
+```
+notion-cli block append <block_id> [flags]
+
+Flags:
+    --children string   Child blocks as JSON array (default "[]")
+```
+
+```
+notion-cli block append abc123 --children '[{"object":"block","type":"paragraph","paragraph":{"rich_text":[{"text":{"content":"New paragraph"}}]}}]'
+echo '[{"object":"block","type":"paragraph","paragraph":{"rich_text":[{"text":{"content":"New paragraph"}}]}}]' | notion-cli block append abc123
+```
+
+### block delete
+
+Delete a block by ID.
+
+```
+notion-cli block delete <block_id>
+```
+
+```
+notion-cli block delete abc123
+```

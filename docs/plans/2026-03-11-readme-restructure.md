@@ -58,11 +58,11 @@
 - [x] write `db query` with flags (--filter, --sort) and examples
 
 ### Task 6: Write Block Commands section
-- [ ] write `block get` with example
-- [ ] write `block update` with flags (--data, --archive/--unarchive) and example
-- [ ] write `block children` with example
-- [ ] write `block append` with flags (--children) and example
-- [ ] write `block delete` with example
+- [x] write `block get` with example
+- [x] write `block update` with flags (--data, --archive/--unarchive) and example
+- [x] write `block children` with example
+- [x] write `block append` with flags (--children) and example
+- [x] write `block delete` with example
 
 ### Task 7: Write Comment Commands section
 - [ ] write `comment list` with flags (--block) and example
