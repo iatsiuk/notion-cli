@@ -53,6 +53,7 @@ func NewRootCmd() *cobra.Command {
 	cmd.AddCommand(NewPageCmd())
 	cmd.AddCommand(NewDBCmd())
 	cmd.AddCommand(NewBlockCmd())
+	cmd.AddCommand(NewCommentCmd())
 
 	return cmd
 }
