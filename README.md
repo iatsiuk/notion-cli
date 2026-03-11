@@ -64,7 +64,7 @@ The default format is `auto`: JSON for interactive terminals, JSON Lines for pip
 |---------|---------------------------------|
 | `json`  | Pretty-printed JSON             |
 | `jsonl` | One JSON object per line        |
-| `raw`   | Raw API response                |
+| `raw`   | Strings unquoted, other values as compact JSON |
 | `table` | Human-readable table            |
 | `auto`  | `json` on TTY, `jsonl` on pipe  |
 
@@ -657,7 +657,7 @@ Check connectivity to the Notion API. Sends a request to verify that the configu
 notion-cli status
 ```
 
-Prints `ok` on success. Returns a non-zero exit code on connection or authentication errors.
+Prints `ok` on success. Returns a non-zero exit code on error.
 
 
 ## Pipe-friendly Workflows
@@ -674,7 +674,7 @@ Get IDs of all pages in a database whose Status is "Done":
 
 ```sh
 notion-cli db query <database_id> \
-  --filter '{"property":"Status","status":{"equals":"Done"}}' \
+  --filter '{"property":"Status","select":{"equals":"Done"}}' \
   | jq -r '.id'
 ```
 
@@ -682,7 +682,7 @@ Archive all pages returned by a search and print their titles:
 
 ```sh
 notion-cli search "meeting notes" --type page | jq -r '.id' | while read id; do
-  title=$(notion-cli page get "$id" | jq -r '[.properties[] | select(.type == "title")] | .[0].title[].plain_text')
+  title=$(notion-cli page get "$id" | jq -r '[.properties[] | select(.type == "title")] | .[0].title[0].plain_text // "untitled"')
   notion-cli page update "$id" --archive
   echo "archived: $title"
 done
