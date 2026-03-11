@@ -73,6 +73,25 @@ notion-cli user list
 
 # get a user by ID
 notion-cli user get <user-id>
+
+# get a block
+notion-cli block get <block-id>
+
+# update a block's type-specific content
+notion-cli block update <block-id> --data '{"paragraph":{"rich_text":[{"text":{"content":"Hello"}}]}}'
+
+# archive / unarchive a block
+notion-cli block update <block-id> --archive
+notion-cli block update <block-id> --unarchive
+
+# list child blocks
+notion-cli block children <block-id>
+
+# append child blocks
+notion-cli block append <block-id> --children '[{"object":"block","type":"paragraph","paragraph":{"rich_text":[{"text":{"content":"New"}}]}}]'
+
+# delete a block
+notion-cli block delete <block-id>
 ```
 
 ## Global Flags
