@@ -25,6 +25,7 @@ func NewDBCmd() *cobra.Command {
 	cmd.AddCommand(NewDBGetCmd())
 	cmd.AddCommand(NewDBListCmd())
 	cmd.AddCommand(NewDBCreateCmd())
+	cmd.AddCommand(NewDBUpdateCmd())
 	return cmd
 }
 
@@ -95,6 +96,59 @@ func runDBCreate(ctx context.Context, client *api.Client, w io.Writer, format, p
 	}
 
 	db, err := client.CreateDatabase(ctx, req)
+	if err != nil {
+		return mapAPIError(err)
+	}
+
+	f, err := output.New(format, isTerminal(w))
+	if err != nil {
+		return fmt.Errorf("output format: %w", err)
+	}
+	return f.Format(w, db)
+}
+
+// NewDBUpdateCmd returns the "db update" cobra subcommand.
+func NewDBUpdateCmd() *cobra.Command {
+	var titleFlag, descriptionFlag, propertiesFlag string
+
+	cmd := &cobra.Command{
+		Use:   "update <database_id>",
+		Short: "Update a Notion database",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return runDBUpdate(cmd.Context(), newClientFromCfg(), cmd.OutOrStdout(), cfg.Format, args[0], titleFlag, descriptionFlag, propertiesFlag)
+		},
+	}
+	cmd.Flags().StringVar(&titleFlag, "title", "", "New database title (plain text)")
+	cmd.Flags().StringVar(&descriptionFlag, "description", "", "New database description (plain text)")
+	cmd.Flags().StringVar(&propertiesFlag, "properties", "", "Properties schema as JSON object")
+	return cmd
+}
+
+func runDBUpdate(ctx context.Context, client *api.Client, w io.Writer, format, databaseID, title, description, propertiesJSON string) error {
+	req := &api.UpdateDatabaseRequest{}
+
+	if title != "" {
+		req.Title = []any{map[string]any{
+			"type": "text",
+			"text": map[string]any{"content": title},
+		}}
+	}
+	if description != "" {
+		req.Description = []any{map[string]any{
+			"type": "text",
+			"text": map[string]any{"content": description},
+		}}
+	}
+	if propertiesJSON != "" {
+		var props map[string]any
+		if err := json.Unmarshal([]byte(propertiesJSON), &props); err != nil {
+			return fmt.Errorf("--properties: %w", err)
+		}
+		req.Properties = props
+	}
+
+	db, err := client.UpdateDatabase(ctx, databaseID, req)
 	if err != nil {
 		return mapAPIError(err)
 	}

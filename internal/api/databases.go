@@ -106,6 +106,26 @@ func (c *Client) CreateDatabase(ctx context.Context, req *CreateDatabaseRequest)
 	return &db, nil
 }
 
+// UpdateDatabaseRequest is the body for PATCH /v1/databases/{id}.
+type UpdateDatabaseRequest struct {
+	Title       []any          `json:"title,omitempty"`
+	Description []any          `json:"description,omitempty"`
+	Properties  map[string]any `json:"properties,omitempty"`
+}
+
+// UpdateDatabase updates an existing database by ID.
+func (c *Client) UpdateDatabase(ctx context.Context, databaseID string, req *UpdateDatabaseRequest) (*Database, error) {
+	raw, err := c.Patch(ctx, "/v1/databases/"+url.PathEscape(databaseID), req)
+	if err != nil {
+		return nil, err
+	}
+	var db Database
+	if err := json.Unmarshal(raw, &db); err != nil {
+		return nil, fmt.Errorf("decode database: %w", err)
+	}
+	return &db, nil
+}
+
 // GetDatabase retrieves a database by ID.
 func (c *Client) GetDatabase(ctx context.Context, databaseID string) (*Database, error) {
 	raw, err := c.Get(ctx, "/v1/databases/"+url.PathEscape(databaseID), nil)
