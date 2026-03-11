@@ -43,12 +43,12 @@
 - [x] write `search` command with flags (--type, --sort) and examples
 
 ### Task 4: Write Page Commands section
-- [ ] write `page get` with flags and example
-- [ ] write `page create` with flags (--parent, --properties) and example
-- [ ] write `page update` with flags (--properties, --archive/--unarchive) and example
-- [ ] write `page property` with example
-- [ ] write `page move` with flags (--parent) and example
-- [ ] write `page markdown` with example
+- [x] write `page get` with flags and example
+- [x] write `page create` with flags (--parent, --properties) and example
+- [x] write `page update` with flags (--properties, --archive/--unarchive) and example
+- [x] write `page property` with example
+- [x] write `page move` with flags (--parent) and example
+- [x] write `page markdown` with example
 
 ### Task 5: Write Database Commands section
 - [ ] write `db get` with example

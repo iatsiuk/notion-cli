@@ -94,3 +94,94 @@ notion-cli search "project roadmap"
 notion-cli search "meeting notes" --type page
 notion-cli search "team wiki" --type database --sort descending
 ```
+
+## Page Commands
+
+### page get
+
+Get a page by ID.
+
+```
+notion-cli page get <page_id>
+```
+
+```
+notion-cli page get abc123
+```
+
+### page create
+
+Create a new page under a database or page parent.
+
+```
+notion-cli page create [flags]
+
+Flags:
+    --parent string       Parent: type:id (e.g. database_id:abc or page_id:abc) (required)
+    --properties string   Properties as JSON object (default "{}")
+```
+
+```
+notion-cli page create --parent database_id:abc123 --properties '{"Name":{"title":[{"text":{"content":"New Page"}}]}}'
+notion-cli page create --parent page_id:abc123
+```
+
+### page update
+
+Update page properties or archive/unarchive a page.
+
+```
+notion-cli page update <page_id> [flags]
+
+Flags:
+    --properties string   Properties as JSON object (default "{}")
+    --archive             Archive the page
+    --unarchive           Unarchive the page
+```
+
+```
+notion-cli page update abc123 --properties '{"Status":{"select":{"name":"Done"}}}'
+notion-cli page update abc123 --archive
+notion-cli page update abc123 --unarchive
+```
+
+### page property
+
+Get a single page property by property ID.
+
+```
+notion-cli page property <page_id> <property_id>
+```
+
+```
+notion-cli page property abc123 title
+```
+
+### page move
+
+Move a page to a new parent page or data source.
+
+```
+notion-cli page move <page_id> [flags]
+
+Flags:
+    --parent string   New parent: type:id (e.g. page_id:abc or data_source_id:abc) (required)
+```
+
+```
+notion-cli page move abc123 --parent page_id:def456
+notion-cli page move abc123 --parent data_source_id:ghi789
+```
+
+### page markdown
+
+Get the full page content rendered as Markdown.
+
+```
+notion-cli page markdown <page_id>
+```
+
+```
+notion-cli page markdown abc123
+notion-cli page markdown abc123 > page.md
+```
