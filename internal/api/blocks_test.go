@@ -546,3 +546,100 @@ func TestListBlockChildren_NotFound(t *testing.T) {
 		t.Errorf("Status = %d, want 404", apiErr.Status)
 	}
 }
+
+func TestAppendBlockChildren_AppendsChildren(t *testing.T) {
+	t.Parallel()
+
+	const responseJSON = `{
+		"object": "list",
+		"results": [
+			{
+				"object": "block",
+				"id": "new-child-1",
+				"type": "paragraph",
+				"has_children": false,
+				"archived": false,
+				"created_time": "2024-01-01T00:00:00.000Z",
+				"last_edited_time": "2024-01-01T00:00:00.000Z",
+				"created_by": {"object": "user", "id": "user-1"},
+				"last_edited_by": {"object": "user", "id": "user-1"},
+				"parent": {"type": "block_id", "block_id": "block-1"},
+				"paragraph": {"rich_text": [], "color": "default"}
+			}
+		],
+		"has_more": false,
+		"next_cursor": null
+	}`
+
+	var gotMethod, gotPath string
+	var gotBody []byte
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotMethod = r.Method
+		gotPath = r.URL.Path
+		gotBody, _ = io.ReadAll(r.Body)
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(responseJSON))
+	}))
+	defer srv.Close()
+
+	children := []map[string]any{
+		{
+			"object": "block",
+			"type":   "paragraph",
+			"paragraph": map[string]any{
+				"rich_text": []any{},
+			},
+		},
+	}
+
+	client := api.NewClient("token", api.WithBaseURL(srv.URL))
+	blocks, err := client.AppendBlockChildren(t.Context(), "block-1", children)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if gotMethod != http.MethodPatch {
+		t.Errorf("method = %q, want %q", gotMethod, http.MethodPatch)
+	}
+	if gotPath != "/v1/blocks/block-1/children" {
+		t.Errorf("path = %q, want %q", gotPath, "/v1/blocks/block-1/children")
+	}
+	if len(blocks) != 1 {
+		t.Fatalf("len = %d, want 1", len(blocks))
+	}
+	if blocks[0].ID != "new-child-1" {
+		t.Errorf("blocks[0].ID = %q, want %q", blocks[0].ID, "new-child-1")
+	}
+
+	var bodyMap map[string]any
+	if err := json.Unmarshal(gotBody, &bodyMap); err != nil {
+		t.Fatalf("body is not valid JSON: %v", err)
+	}
+	if _, ok := bodyMap["children"]; !ok {
+		t.Error("body missing 'children' key")
+	}
+}
+
+func TestAppendBlockChildren_NotFound(t *testing.T) {
+	t.Parallel()
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+		_, _ = w.Write([]byte(`{"status":404,"code":"object_not_found","message":"block not found"}`))
+	}))
+	defer srv.Close()
+
+	client := api.NewClient("token", api.WithBaseURL(srv.URL))
+	_, err := client.AppendBlockChildren(t.Context(), "nonexistent", nil)
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+
+	var apiErr *api.APIError
+	if !api.AsAPIError(err, &apiErr) {
+		t.Fatalf("expected *APIError, got %T: %v", err, err)
+	}
+	if apiErr.Status != 404 {
+		t.Errorf("Status = %d, want 404", apiErr.Status)
+	}
+}

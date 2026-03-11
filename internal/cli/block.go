@@ -24,6 +24,7 @@ func NewBlockCmd() *cobra.Command {
 	cmd.AddCommand(NewBlockGetCmd())
 	cmd.AddCommand(NewBlockUpdateCmd())
 	cmd.AddCommand(NewBlockChildrenCmd())
+	cmd.AddCommand(NewBlockAppendCmd())
 	return cmd
 }
 
@@ -86,6 +87,40 @@ func NewBlockChildrenCmd() *cobra.Command {
 
 func runBlockChildren(ctx context.Context, client *api.Client, w io.Writer, format, blockID string) error {
 	blocks, err := client.ListBlockChildren(ctx, blockID)
+	if err != nil {
+		return mapAPIError(err)
+	}
+
+	f, err := output.New(format, isTerminal(w))
+	if err != nil {
+		return fmt.Errorf("output format: %w", err)
+	}
+	return f.Format(w, blocks)
+}
+
+// NewBlockAppendCmd returns the "block append" cobra subcommand.
+func NewBlockAppendCmd() *cobra.Command {
+	var childrenFlag string
+
+	cmd := &cobra.Command{
+		Use:   "append <block_id>",
+		Short: "Append child blocks to a Notion block",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return runBlockAppend(cmd.Context(), newClientFromCfg(), cmd.OutOrStdout(), cfg.Format, args[0], childrenFlag)
+		},
+	}
+	cmd.Flags().StringVar(&childrenFlag, "children", "[]", "Child blocks as JSON array")
+	return cmd
+}
+
+func runBlockAppend(ctx context.Context, client *api.Client, w io.Writer, format, blockID, childrenJSON string) error {
+	var children []map[string]any
+	if err := json.Unmarshal([]byte(childrenJSON), &children); err != nil {
+		return fmt.Errorf("--children: %w", err)
+	}
+
+	blocks, err := client.AppendBlockChildren(ctx, blockID, children)
 	if err != nil {
 		return mapAPIError(err)
 	}

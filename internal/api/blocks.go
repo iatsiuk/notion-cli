@@ -117,6 +117,28 @@ func (c *Client) ListBlockChildren(ctx context.Context, blockID string) ([]Block
 	}
 }
 
+// AppendBlockChildren appends child blocks to a block and returns the created blocks.
+func (c *Client) AppendBlockChildren(ctx context.Context, blockID string, children []map[string]any) ([]Block, error) {
+	body := map[string]any{"children": children}
+	raw, err := c.Patch(ctx, "/v1/blocks/"+url.PathEscape(blockID)+"/children", body)
+	if err != nil {
+		return nil, err
+	}
+	var resp listResponse
+	if err := json.Unmarshal(raw, &resp); err != nil {
+		return nil, fmt.Errorf("decode append response: %w", err)
+	}
+	blocks := make([]Block, 0, len(resp.Results))
+	for _, r := range resp.Results {
+		var b Block
+		if err := json.Unmarshal(r, &b); err != nil {
+			return nil, fmt.Errorf("decode block: %w", err)
+		}
+		blocks = append(blocks, b)
+	}
+	return blocks, nil
+}
+
 // GetBlock retrieves a block by ID.
 func (c *Client) GetBlock(ctx context.Context, blockID string) (*Block, error) {
 	raw, err := c.Get(ctx, "/v1/blocks/"+url.PathEscape(blockID), nil)
