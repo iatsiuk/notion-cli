@@ -137,7 +137,7 @@ func runDSCreate(ctx context.Context, client *api.Client, w io.Writer, format, p
 		if err != nil {
 			return err
 		}
-		req.Properties = props
+		req.Properties = &props
 	}
 
 	ds, err := client.CreateDataSource(ctx, req)
@@ -186,7 +186,7 @@ func runDSUpdate(ctx context.Context, client *api.Client, w io.Writer, format, d
 		if err != nil {
 			return err
 		}
-		req.Properties = props
+		req.Properties = &props
 	}
 
 	ds, err := client.UpdateDataSource(ctx, dataSourceID, req)

@@ -51,9 +51,9 @@ type DataSource struct {
 
 // CreateDataSourceRequest is the body for POST /v1/data_sources.
 type CreateDataSourceRequest struct {
-	Parent     Parent         `json:"parent"`
-	Title      []any          `json:"title,omitempty"`
-	Properties map[string]any `json:"properties,omitempty"`
+	Parent     Parent          `json:"parent"`
+	Title      []any           `json:"title,omitempty"`
+	Properties *map[string]any `json:"properties,omitempty"`
 }
 
 // CreateDataSource creates a new data source.
@@ -84,8 +84,8 @@ func (c *Client) GetDataSource(ctx context.Context, dataSourceID string) (*DataS
 
 // UpdateDataSourceRequest is the body for PATCH /v1/data_sources/{id}.
 type UpdateDataSourceRequest struct {
-	Title      []any          `json:"title,omitempty"`
-	Properties map[string]any `json:"properties,omitempty"`
+	Title      []any           `json:"title,omitempty"`
+	Properties *map[string]any `json:"properties,omitempty"`
 }
 
 // UpdateDataSource updates an existing data source by ID.
