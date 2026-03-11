@@ -17,8 +17,16 @@ Download the binary from the [GitHub Releases](https://github.com/iatsiuk/notion
 ## Quick Usage
 
 ```bash
-# search pages
+# search pages and databases
 notion-cli search "Meeting notes"
+
+# filter by object type
+notion-cli search "Meeting notes" --type page
+notion-cli search "My DB" --type database
+
+# sort by last edited time
+notion-cli search "Meeting notes" --sort descending
+notion-cli search "Meeting notes" --sort ascending
 
 # get a page
 notion-cli page get <page-id>

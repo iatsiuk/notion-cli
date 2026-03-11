@@ -130,15 +130,16 @@ func TestRunSearch_TypeFilterDatabase(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var body struct {
 			Filter struct {
-				Value string `json:"value"`
+				Value    string `json:"value"`
+				Property string `json:"property"`
 			} `json:"filter"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 			http.Error(w, "bad body", http.StatusBadRequest)
 			return
 		}
-		if body.Filter.Value != "database" {
-			http.Error(w, "bad filter value", http.StatusBadRequest)
+		if body.Filter.Value != "database" || body.Filter.Property != "object" {
+			http.Error(w, "bad filter", http.StatusBadRequest)
 			return
 		}
 		w.Header().Set("Content-Type", "application/json")
@@ -192,6 +193,10 @@ func TestRunSearch_SortDirection(t *testing.T) {
 	err := runSearch(context.Background(), client, &buf, "json", "test", "", "descending")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
+	}
+	out := strings.TrimSpace(buf.String())
+	if out != "[]" {
+		t.Errorf("output = %q, want %q", out, "[]")
 	}
 }
 

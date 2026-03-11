@@ -52,25 +52,43 @@ func toRows(data any) ([]map[string]any, error) {
 		return nil, nil
 	}
 	switch v := data.(type) {
+	case []json.RawMessage:
+		return rawMessagesToRows(v)
 	case []any:
-		rows := make([]map[string]any, 0, len(v))
-		for _, item := range v {
-			if item == nil {
-				rows = append(rows, map[string]any{})
-				continue
-			}
-			m, ok := item.(map[string]any)
-			if !ok {
-				return nil, fmt.Errorf("table format: expected object, got %T", item)
-			}
-			rows = append(rows, m)
-		}
-		return rows, nil
+		return anySliceToRows(v)
 	case map[string]any:
 		return []map[string]any{v}, nil
 	default:
 		return nil, fmt.Errorf("table format: unsupported type %T", data)
 	}
+}
+
+func rawMessagesToRows(items []json.RawMessage) ([]map[string]any, error) {
+	rows := make([]map[string]any, 0, len(items))
+	for _, item := range items {
+		var m map[string]any
+		if err := json.Unmarshal(item, &m); err != nil {
+			return nil, fmt.Errorf("table format: decode item: %w", err)
+		}
+		rows = append(rows, m)
+	}
+	return rows, nil
+}
+
+func anySliceToRows(items []any) ([]map[string]any, error) {
+	rows := make([]map[string]any, 0, len(items))
+	for _, item := range items {
+		if item == nil {
+			rows = append(rows, map[string]any{})
+			continue
+		}
+		m, ok := item.(map[string]any)
+		if !ok {
+			return nil, fmt.Errorf("table format: expected object, got %T", item)
+		}
+		rows = append(rows, m)
+	}
+	return rows, nil
 }
 
 // collectHeaders returns sorted column names from all rows.

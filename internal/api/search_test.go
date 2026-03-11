@@ -93,12 +93,16 @@ func TestSearch_FilterDatabases(t *testing.T) {
 		body, _ := io.ReadAll(r.Body)
 		var payload struct {
 			Filter struct {
-				Value string `json:"value"`
+				Value    string `json:"value"`
+				Property string `json:"property"`
 			} `json:"filter"`
 		}
-		_ = json.Unmarshal(body, &payload)
-		if payload.Filter.Value != "database" {
-			http.Error(w, "bad filter value", http.StatusBadRequest)
+		if err := json.Unmarshal(body, &payload); err != nil {
+			http.Error(w, "bad body", http.StatusBadRequest)
+			return
+		}
+		if payload.Filter.Value != "database" || payload.Filter.Property != "object" {
+			http.Error(w, "bad filter", http.StatusBadRequest)
 			return
 		}
 		w.Header().Set("Content-Type", "application/json")

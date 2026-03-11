@@ -24,7 +24,6 @@ type SearchRequest struct {
 	Filter      *SearchFilter `json:"filter,omitempty"`
 	Sort        *SearchSort   `json:"sort,omitempty"`
 	StartCursor string        `json:"start_cursor,omitempty"`
-	PageSize    int           `json:"page_size,omitempty"`
 }
 
 // Search sends POST /v1/search and returns all matching results (auto-paginated).
