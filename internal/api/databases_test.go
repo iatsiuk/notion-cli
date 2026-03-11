@@ -395,3 +395,173 @@ func TestUpdateDatabase_Error(t *testing.T) {
 		t.Errorf("Status = %d, want 404", apiErr.Status)
 	}
 }
+
+const queryPageJSON = `{
+	"object": "page",
+	"id": "page-1",
+	"created_time": "2024-01-01T00:00:00.000Z",
+	"last_edited_time": "2024-01-02T00:00:00.000Z",
+	"created_by": {"object": "user", "id": "user-1"},
+	"last_edited_by": {"object": "user", "id": "user-1"},
+	"parent": {"type": "database_id", "database_id": "db-1"},
+	"url": "https://www.notion.so/page-1",
+	"public_url": null,
+	"in_trash": false,
+	"is_locked": false,
+	"icon": null,
+	"cover": null,
+	"properties": {}
+}`
+
+func TestQueryDatabase_NoFilter(t *testing.T) {
+	t.Parallel()
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v1/databases/db-1/query" || r.Method != http.MethodPost {
+			http.Error(w, "not found", http.StatusNotFound)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"object":"list","results":[` + queryPageJSON + `],"has_more":false,"next_cursor":null}`))
+	}))
+	defer srv.Close()
+
+	client := api.NewClient("token", api.WithBaseURL(srv.URL))
+	pages, err := client.QueryDatabase(t.Context(), "db-1", nil)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(pages) != 1 {
+		t.Fatalf("want 1 page, got %d", len(pages))
+	}
+	if pages[0].ID != "page-1" {
+		t.Errorf("ID = %q, want %q", pages[0].ID, "page-1")
+	}
+}
+
+func TestQueryDatabase_WithFilter(t *testing.T) {
+	t.Parallel()
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v1/databases/db-1/query" || r.Method != http.MethodPost {
+			http.Error(w, "not found", http.StatusNotFound)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"object":"list","results":[` + queryPageJSON + `],"has_more":false,"next_cursor":null}`))
+	}))
+	defer srv.Close()
+
+	client := api.NewClient("token", api.WithBaseURL(srv.URL))
+	req := &api.QueryDatabaseRequest{
+		Filter: []byte(`{"property":"Status","select":{"equals":"Active"}}`),
+	}
+	pages, err := client.QueryDatabase(t.Context(), "db-1", req)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(pages) != 1 {
+		t.Fatalf("want 1 page, got %d", len(pages))
+	}
+}
+
+func TestQueryDatabase_WithSorts(t *testing.T) {
+	t.Parallel()
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v1/databases/db-1/query" || r.Method != http.MethodPost {
+			http.Error(w, "not found", http.StatusNotFound)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"object":"list","results":[],"has_more":false,"next_cursor":null}`))
+	}))
+	defer srv.Close()
+
+	client := api.NewClient("token", api.WithBaseURL(srv.URL))
+	req := &api.QueryDatabaseRequest{
+		Sorts: []byte(`[{"property":"Name","direction":"ascending"}]`),
+	}
+	pages, err := client.QueryDatabase(t.Context(), "db-1", req)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(pages) != 0 {
+		t.Fatalf("want 0 pages, got %d", len(pages))
+	}
+}
+
+func TestQueryDatabase_Pagination(t *testing.T) {
+	t.Parallel()
+
+	page2JSON := `{
+		"object": "page",
+		"id": "page-2",
+		"created_time": "2024-01-01T00:00:00.000Z",
+		"last_edited_time": "2024-01-02T00:00:00.000Z",
+		"created_by": {"object": "user", "id": "user-1"},
+		"last_edited_by": {"object": "user", "id": "user-1"},
+		"parent": {"type": "database_id", "database_id": "db-1"},
+		"url": "https://www.notion.so/page-2",
+		"public_url": null,
+		"in_trash": false,
+		"is_locked": false,
+		"icon": null,
+		"cover": null,
+		"properties": {}
+	}`
+
+	var call int
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		call++
+		w.Header().Set("Content-Type", "application/json")
+		if call == 1 {
+			_, _ = w.Write([]byte(`{"object":"list","results":[` + queryPageJSON + `],"has_more":true,"next_cursor":"cursor1"}`))
+		} else {
+			_, _ = w.Write([]byte(`{"object":"list","results":[` + page2JSON + `],"has_more":false,"next_cursor":null}`))
+		}
+	}))
+	defer srv.Close()
+
+	client := api.NewClient("token", api.WithBaseURL(srv.URL))
+	pages, err := client.QueryDatabase(t.Context(), "db-1", nil)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(pages) != 2 {
+		t.Fatalf("want 2 pages, got %d", len(pages))
+	}
+	if pages[0].ID != "page-1" {
+		t.Errorf("pages[0].ID = %q, want %q", pages[0].ID, "page-1")
+	}
+	if pages[1].ID != "page-2" {
+		t.Errorf("pages[1].ID = %q, want %q", pages[1].ID, "page-2")
+	}
+	if call != 2 {
+		t.Errorf("expected 2 HTTP calls, got %d", call)
+	}
+}
+
+func TestQueryDatabase_Error(t *testing.T) {
+	t.Parallel()
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+		_, _ = w.Write([]byte(`{"status":404,"code":"object_not_found","message":"database not found"}`))
+	}))
+	defer srv.Close()
+
+	client := api.NewClient("token", api.WithBaseURL(srv.URL))
+	_, err := client.QueryDatabase(t.Context(), "bad-id", nil)
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+
+	var apiErr *api.APIError
+	if !api.AsAPIError(err, &apiErr) {
+		t.Fatalf("expected *APIError, got %T: %v", err, err)
+	}
+	if apiErr.Status != 404 {
+		t.Errorf("Status = %d, want 404", apiErr.Status)
+	}
+}

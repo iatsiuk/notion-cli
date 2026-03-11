@@ -126,6 +126,53 @@ func (c *Client) UpdateDatabase(ctx context.Context, databaseID string, req *Upd
 	return &db, nil
 }
 
+// QueryDatabaseRequest is the body for POST /v1/databases/{id}/query.
+type QueryDatabaseRequest struct {
+	Filter      json.RawMessage `json:"filter,omitempty"`
+	Sorts       json.RawMessage `json:"sorts,omitempty"`
+	StartCursor string          `json:"start_cursor,omitempty"`
+}
+
+// queryDatabaseResponse is the paginated response from /v1/databases/{id}/query.
+type queryDatabaseResponse struct {
+	Results    []json.RawMessage `json:"results"`
+	HasMore    bool              `json:"has_more"`
+	NextCursor *string           `json:"next_cursor"`
+}
+
+// QueryDatabase queries a database and returns all matching pages (auto-paginated).
+func (c *Client) QueryDatabase(ctx context.Context, databaseID string, req *QueryDatabaseRequest) ([]Page, error) {
+	if req == nil {
+		req = &QueryDatabaseRequest{}
+	}
+	path := "/v1/databases/" + url.PathEscape(databaseID) + "/query"
+	all := make([]Page, 0)
+	for {
+		raw, err := c.Post(ctx, path, req)
+		if err != nil {
+			return nil, err
+		}
+		var resp queryDatabaseResponse
+		if err := json.Unmarshal(raw, &resp); err != nil {
+			return nil, fmt.Errorf("decode query response: %w", err)
+		}
+		for _, r := range resp.Results {
+			var p Page
+			if err := json.Unmarshal(r, &p); err != nil {
+				return nil, fmt.Errorf("decode page: %w", err)
+			}
+			all = append(all, p)
+		}
+		if !resp.HasMore {
+			return all, nil
+		}
+		if resp.NextCursor == nil {
+			return nil, fmt.Errorf("pagination: has_more is true but next_cursor is nil")
+		}
+		req.StartCursor = *resp.NextCursor
+	}
+}
+
 // GetDatabase retrieves a database by ID.
 func (c *Client) GetDatabase(ctx context.Context, databaseID string) (*Database, error) {
 	raw, err := c.Get(ctx, "/v1/databases/"+url.PathEscape(databaseID), nil)

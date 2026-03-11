@@ -412,3 +412,132 @@ func TestRunDBUpdate_APIError(t *testing.T) {
 		t.Errorf("expected exit code %d, got %d", ExitAPI, cliErr.Code)
 	}
 }
+
+const dbQueryPageJSON = `{
+	"object": "page",
+	"id": "page-1",
+	"created_time": "2024-01-01T00:00:00.000Z",
+	"last_edited_time": "2024-01-02T00:00:00.000Z",
+	"created_by": {"object": "user", "id": "user-1"},
+	"last_edited_by": {"object": "user", "id": "user-1"},
+	"parent": {"type": "database_id", "database_id": "db-1"},
+	"url": "https://www.notion.so/page-1",
+	"public_url": null,
+	"in_trash": false,
+	"is_locked": false,
+	"icon": null,
+	"cover": null,
+	"properties": {}
+}`
+
+func queryServer(t *testing.T, dbID string) *httptest.Server {
+	t.Helper()
+	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v1/databases/"+dbID+"/query" || r.Method != http.MethodPost {
+			http.Error(w, "not found", http.StatusNotFound)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"object":"list","results":[` + dbQueryPageJSON + `],"has_more":false,"next_cursor":null}`))
+	}))
+}
+
+func TestRunDBQuery_OutputsPages(t *testing.T) {
+	t.Parallel()
+	srv := queryServer(t, "db-1")
+	defer srv.Close()
+
+	client := api.NewClient("token", api.WithBaseURL(srv.URL), api.WithHTTPClient(srv.Client()))
+	var buf bytes.Buffer
+	err := runDBQuery(context.Background(), client, &buf, "json", "db-1", "", "")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(buf.String(), "page-1") {
+		t.Errorf("output missing page ID, got: %s", buf.String())
+	}
+}
+
+func TestRunDBQuery_WithFilter(t *testing.T) {
+	t.Parallel()
+	srv := queryServer(t, "db-1")
+	defer srv.Close()
+
+	client := api.NewClient("token", api.WithBaseURL(srv.URL), api.WithHTTPClient(srv.Client()))
+	var buf bytes.Buffer
+	err := runDBQuery(context.Background(), client, &buf, "json", "db-1", `{"property":"Status","select":{"equals":"Active"}}`, "")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(buf.String(), "page-1") {
+		t.Errorf("output missing page ID, got: %s", buf.String())
+	}
+}
+
+func TestRunDBQuery_WithSort(t *testing.T) {
+	t.Parallel()
+	srv := queryServer(t, "db-1")
+	defer srv.Close()
+
+	client := api.NewClient("token", api.WithBaseURL(srv.URL), api.WithHTTPClient(srv.Client()))
+	var buf bytes.Buffer
+	err := runDBQuery(context.Background(), client, &buf, "json", "db-1", "", `[{"property":"Name","direction":"ascending"}]`)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(buf.String(), "page-1") {
+		t.Errorf("output missing page ID, got: %s", buf.String())
+	}
+}
+
+func TestRunDBQuery_MissingArgument(t *testing.T) {
+	t.Parallel()
+	cmd := NewDBQueryCmd()
+	cmd.SetArgs([]string{})
+	err := cmd.Execute()
+	if err == nil {
+		t.Fatal("expected error for missing argument, got nil")
+	}
+}
+
+func TestRunDBQuery_InvalidFilter(t *testing.T) {
+	t.Parallel()
+	var buf bytes.Buffer
+	err := runDBQuery(context.Background(), nil, &buf, "json", "db-1", "not-json", "")
+	if err == nil {
+		t.Fatal("expected error for invalid filter JSON, got nil")
+	}
+}
+
+func TestRunDBQuery_InvalidSort(t *testing.T) {
+	t.Parallel()
+	var buf bytes.Buffer
+	err := runDBQuery(context.Background(), nil, &buf, "json", "db-1", "", "not-json")
+	if err == nil {
+		t.Fatal("expected error for invalid sort JSON, got nil")
+	}
+}
+
+func TestRunDBQuery_APIError(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+		_, _ = w.Write([]byte(`{"status":404,"code":"object_not_found","message":"database not found"}`))
+	}))
+	defer srv.Close()
+
+	client := api.NewClient("token", api.WithBaseURL(srv.URL), api.WithHTTPClient(srv.Client()))
+	var buf bytes.Buffer
+	err := runDBQuery(context.Background(), client, &buf, "json", "bad-id", "", "")
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+
+	var cliErr *CLIError
+	if !errors.As(err, &cliErr) {
+		t.Fatalf("expected CLIError, got %T: %v", err, err)
+	}
+	if cliErr.Code != ExitAPI {
+		t.Errorf("expected exit code %d, got %d", ExitAPI, cliErr.Code)
+	}
+}

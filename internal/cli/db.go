@@ -26,6 +26,7 @@ func NewDBCmd() *cobra.Command {
 	cmd.AddCommand(NewDBListCmd())
 	cmd.AddCommand(NewDBCreateCmd())
 	cmd.AddCommand(NewDBUpdateCmd())
+	cmd.AddCommand(NewDBQueryCmd())
 	return cmd
 }
 
@@ -195,6 +196,51 @@ func runDBList(ctx context.Context, client *api.Client, w io.Writer, format stri
 		return fmt.Errorf("output format: %w", err)
 	}
 	return f.Format(w, dbs)
+}
+
+// NewDBQueryCmd returns the "db query" cobra subcommand.
+func NewDBQueryCmd() *cobra.Command {
+	var filterFlag, sortFlag string
+
+	cmd := &cobra.Command{
+		Use:   "query <database_id>",
+		Short: "Query a Notion database",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return runDBQuery(cmd.Context(), newClientFromCfg(), cmd.OutOrStdout(), cfg.Format, args[0], filterFlag, sortFlag)
+		},
+	}
+	cmd.Flags().StringVar(&filterFlag, "filter", "", "Filter as JSON object")
+	cmd.Flags().StringVar(&sortFlag, "sort", "", "Sorts as JSON array")
+	return cmd
+}
+
+func runDBQuery(ctx context.Context, client *api.Client, w io.Writer, format, databaseID, filterJSON, sortJSON string) error {
+	req := &api.QueryDatabaseRequest{}
+
+	if filterJSON != "" {
+		if !json.Valid([]byte(filterJSON)) {
+			return fmt.Errorf("--filter: invalid JSON")
+		}
+		req.Filter = json.RawMessage(filterJSON)
+	}
+	if sortJSON != "" {
+		if !json.Valid([]byte(sortJSON)) {
+			return fmt.Errorf("--sort: invalid JSON")
+		}
+		req.Sorts = json.RawMessage(sortJSON)
+	}
+
+	pages, err := client.QueryDatabase(ctx, databaseID, req)
+	if err != nil {
+		return mapAPIError(err)
+	}
+
+	f, err := output.New(format, isTerminal(w))
+	if err != nil {
+		return fmt.Errorf("output format: %w", err)
+	}
+	return f.Format(w, pages)
 }
 
 func runDBGet(ctx context.Context, client *api.Client, w io.Writer, format, databaseID string) error {
