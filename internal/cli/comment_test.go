@@ -70,6 +70,9 @@ func TestRunCommentList_MissingBlockFlag(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for missing --block flag, got nil")
 	}
+	if err.Error() != "--block flag is required" {
+		t.Errorf("unexpected error message: %q", err.Error())
+	}
 }
 
 func TestRunCommentList_HandlesPagination(t *testing.T) {
@@ -178,6 +181,10 @@ func TestRunCommentCreate_OnPage(t *testing.T) {
 func TestRunCommentCreate_InDiscussion(t *testing.T) {
 	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v1/comments" || r.Method != http.MethodPost {
+			http.Error(w, "not found", http.StatusNotFound)
+			return
+		}
 		var body map[string]any
 		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 			http.Error(w, "bad request", http.StatusBadRequest)
@@ -216,6 +223,9 @@ func TestRunCommentCreate_MissingFlags(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for missing --page/--discussion flags, got nil")
 	}
+	if err.Error() != "one of --page or --discussion is required" {
+		t.Errorf("unexpected error message: %q", err.Error())
+	}
 }
 
 func TestRunCommentCreate_MissingText(t *testing.T) {
@@ -225,6 +235,9 @@ func TestRunCommentCreate_MissingText(t *testing.T) {
 	err := cmd.Execute()
 	if err == nil {
 		t.Fatal("expected error for missing --text flag, got nil")
+	}
+	if err.Error() != "--text flag is required" {
+		t.Errorf("unexpected error message: %q", err.Error())
 	}
 }
 
@@ -325,57 +338,5 @@ func TestRunCommentGet_APIError(t *testing.T) {
 	}
 	if cliErr.Code != ExitAPI {
 		t.Errorf("expected exit code %d, got %d", ExitAPI, cliErr.Code)
-	}
-}
-
-func TestRunCommentDelete_OutputsDeletedComment(t *testing.T) {
-	t.Parallel()
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/v1/comments/comment-1" || r.Method != http.MethodDelete {
-			http.Error(w, "not found", http.StatusNotFound)
-			return
-		}
-		w.Header().Set("Content-Type", "application/json")
-		_, _ = w.Write([]byte(testCommentJSON))
-	}))
-	defer srv.Close()
-
-	client := api.NewClient("token", api.WithBaseURL(srv.URL), api.WithHTTPClient(srv.Client()))
-	var buf bytes.Buffer
-	err := runCommentDelete(context.Background(), client, &buf, "json", "comment-1")
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
-	var obj map[string]any
-	if err := json.Unmarshal([]byte(strings.TrimSpace(buf.String())), &obj); err != nil {
-		t.Fatalf("output is not valid JSON: %v", err)
-	}
-	if obj["id"] != "comment-1" {
-		t.Errorf("id = %v, want %q", obj["id"], "comment-1")
-	}
-}
-
-func TestRunCommentDelete_APIError(t *testing.T) {
-	t.Parallel()
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusForbidden)
-		_, _ = w.Write([]byte(`{"status":403,"code":"restricted_resource","message":"Insufficient permissions."}`))
-	}))
-	defer srv.Close()
-
-	client := api.NewClient("token", api.WithBaseURL(srv.URL), api.WithHTTPClient(srv.Client()))
-	var buf bytes.Buffer
-	err := runCommentDelete(context.Background(), client, &buf, "json", "comment-1")
-	if err == nil {
-		t.Fatal("expected error, got nil")
-	}
-
-	var cliErr *CLIError
-	if !errors.As(err, &cliErr) {
-		t.Fatalf("expected CLIError, got %T: %v", err, err)
-	}
-	if cliErr.Code != ExitAuth {
-		t.Errorf("expected exit code %d, got %d", ExitAuth, cliErr.Code)
 	}
 }

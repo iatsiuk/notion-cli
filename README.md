@@ -92,6 +92,18 @@ notion-cli block append <block-id> --children '[{"object":"block","type":"paragr
 
 # delete a block
 notion-cli block delete <block-id>
+
+# list comments on a block or page
+notion-cli comment list --block <block-id>
+
+# create a comment on a page
+notion-cli comment create --page <page-id> --text "Hello"
+
+# create a comment in a discussion thread
+notion-cli comment create --discussion <discussion-id> --text "Reply"
+
+# get a comment
+notion-cli comment get <comment-id>
 ```
 
 ## Global Flags

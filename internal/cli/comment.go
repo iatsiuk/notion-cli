@@ -23,7 +23,6 @@ func NewCommentCmd() *cobra.Command {
 	cmd.AddCommand(NewCommentListCmd())
 	cmd.AddCommand(NewCommentCreateCmd())
 	cmd.AddCommand(NewCommentGetCmd())
-	cmd.AddCommand(NewCommentDeleteCmd())
 	return cmd
 }
 
@@ -65,6 +64,7 @@ func NewCommentCreateCmd() *cobra.Command {
 	cmd.Flags().StringVar(&pageID, "page", "", "Page ID to comment on")
 	cmd.Flags().StringVar(&discussionID, "discussion", "", "Discussion ID to reply in")
 	cmd.Flags().StringVar(&text, "text", "", "Comment text content")
+	cmd.MarkFlagsMutuallyExclusive("page", "discussion")
 	return cmd
 }
 
@@ -73,7 +73,7 @@ func runCommentCreate(ctx context.Context, client *api.Client, w io.Writer, form
 		RichText: []api.RichTextItem{{Type: "text", Text: &api.RichTextText{Content: text}}},
 	}
 	if pageID != "" {
-		req.Parent = &api.Parent{PageID: pageID}
+		req.Parent = &api.Parent{Type: "page_id", PageID: pageID}
 	} else {
 		req.DiscussionID = discussionID
 	}
@@ -102,33 +102,8 @@ func NewCommentGetCmd() *cobra.Command {
 	}
 }
 
-// NewCommentDeleteCmd returns the "comment delete" cobra subcommand.
-func NewCommentDeleteCmd() *cobra.Command {
-	return &cobra.Command{
-		Use:   "delete <comment_id>",
-		Short: "Delete a Notion comment by ID",
-		Args:  cobra.ExactArgs(1),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			return runCommentDelete(cmd.Context(), newClientFromCfg(), cmd.OutOrStdout(), cfg.Format, args[0])
-		},
-	}
-}
-
 func runCommentGet(ctx context.Context, client *api.Client, w io.Writer, format, commentID string) error {
 	cmt, err := client.GetComment(ctx, commentID)
-	if err != nil {
-		return mapAPIError(err)
-	}
-
-	f, err := output.New(format, isTerminal(w))
-	if err != nil {
-		return fmt.Errorf("output format: %w", err)
-	}
-	return f.Format(w, cmt)
-}
-
-func runCommentDelete(ctx context.Context, client *api.Client, w io.Writer, format, commentID string) error {
-	cmt, err := client.DeleteComment(ctx, commentID)
 	if err != nil {
 		return mapAPIError(err)
 	}

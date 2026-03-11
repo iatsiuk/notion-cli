@@ -168,7 +168,7 @@ func TestCreateComment_OnPage(t *testing.T) {
 
 	client := api.NewClient("token", api.WithBaseURL(srv.URL))
 	req := &api.CreateCommentRequest{
-		Parent:   &api.Parent{PageID: "page-1"},
+		Parent:   &api.Parent{Type: "page_id", PageID: "page-1"},
 		RichText: []api.RichTextItem{{Type: "text", Text: &api.RichTextText{Content: "Hello"}}},
 	}
 	cmt, err := client.CreateComment(t.Context(), req)
@@ -184,6 +184,14 @@ func TestCreateComment_InDiscussion(t *testing.T) {
 	t.Parallel()
 
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v1/comments" {
+			http.Error(w, "not found", http.StatusNotFound)
+			return
+		}
+		if r.Method != http.MethodPost {
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
 		var body map[string]any
 		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 			http.Error(w, "bad request", http.StatusBadRequest)
@@ -312,56 +320,5 @@ func TestGetComment_Error(t *testing.T) {
 	}
 	if apiErr.Status != 404 {
 		t.Errorf("Status = %d, want 404", apiErr.Status)
-	}
-}
-
-func TestDeleteComment_RemovesComment(t *testing.T) {
-	t.Parallel()
-
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/v1/comments/comment-1" {
-			http.Error(w, "not found", http.StatusNotFound)
-			return
-		}
-		if r.Method != http.MethodDelete {
-			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-			return
-		}
-		w.Header().Set("Content-Type", "application/json")
-		_, _ = w.Write([]byte(commentJSON))
-	}))
-	defer srv.Close()
-
-	client := api.NewClient("token", api.WithBaseURL(srv.URL))
-	cmt, err := client.DeleteComment(t.Context(), "comment-1")
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if cmt.ID != "comment-1" {
-		t.Errorf("ID = %q, want %q", cmt.ID, "comment-1")
-	}
-}
-
-func TestDeleteComment_Error(t *testing.T) {
-	t.Parallel()
-
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusForbidden)
-		_, _ = w.Write([]byte(`{"status":403,"code":"restricted_resource","message":"Insufficient permissions."}`))
-	}))
-	defer srv.Close()
-
-	client := api.NewClient("token", api.WithBaseURL(srv.URL))
-	_, err := client.DeleteComment(t.Context(), "comment-1")
-	if err == nil {
-		t.Fatal("expected error, got nil")
-	}
-
-	var apiErr *api.APIError
-	if !api.AsAPIError(err, &apiErr) {
-		t.Fatalf("expected *APIError, got %T: %v", err, err)
-	}
-	if apiErr.Status != 403 {
-		t.Errorf("Status = %d, want 403", apiErr.Status)
 	}
 }
