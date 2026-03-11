@@ -338,4 +338,52 @@ notion-cli block delete <block_id>
 
 ```
 notion-cli block delete abc123
+
+## Comment Commands
+
+### comment list
+
+List comments on a block or page.
+
+```
+notion-cli comment list [flags]
+
+Flags:
+    --block string   Block or page ID to list comments for (required)
+```
+
+```
+notion-cli comment list --block abc123
+```
+
+### comment create
+
+Create a comment on a page or reply in an existing discussion thread.
+
+```
+notion-cli comment create [flags]
+
+Flags:
+    --page string         Page ID to comment on
+    --discussion string   Discussion ID to reply in
+    --text string         Comment text content (required)
+```
+
+`--page` and `--discussion` are mutually exclusive; one is required.
+
+```
+notion-cli comment create --page abc123 --text "This looks good"
+notion-cli comment create --discussion def456 --text "Agreed"
+```
+
+### comment get
+
+Get a comment by ID.
+
+```
+notion-cli comment get <comment_id>
+```
+
+```
+notion-cli comment get abc123
 ```

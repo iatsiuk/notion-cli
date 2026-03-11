@@ -65,9 +65,9 @@
 - [x] write `block delete` with example
 
 ### Task 7: Write Comment Commands section
-- [ ] write `comment list` with flags (--block) and example
-- [ ] write `comment create` with flags (--page/--discussion, --text) and examples
-- [ ] write `comment get` with example
+- [x] write `comment list` with flags (--block) and example
+- [x] write `comment create` with flags (--page/--discussion, --text) and examples
+- [x] write `comment get` with example
 
 ### Task 8: Write User Commands section
 - [ ] write `user me` with example
