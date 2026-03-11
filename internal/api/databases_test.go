@@ -123,6 +123,117 @@ func TestGetDatabase_Deserialization(t *testing.T) {
 	}
 }
 
+func TestListDatabases(t *testing.T) {
+	t.Parallel()
+
+	page1 := `{
+		"object": "list",
+		"results": [` + databaseJSON + `],
+		"has_more": false,
+		"next_cursor": null
+	}`
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v1/search" || r.Method != http.MethodPost {
+			http.Error(w, "not found", http.StatusNotFound)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(page1))
+	}))
+	defer srv.Close()
+
+	client := api.NewClient("token", api.WithBaseURL(srv.URL))
+	dbs, err := client.ListDatabases(t.Context())
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(dbs) != 1 {
+		t.Fatalf("want 1 database, got %d", len(dbs))
+	}
+	if dbs[0].ID != "db-1" {
+		t.Errorf("ID = %q, want %q", dbs[0].ID, "db-1")
+	}
+}
+
+func TestListDatabases_Pagination(t *testing.T) {
+	t.Parallel()
+
+	db2JSON := `{
+		"object": "database",
+		"id": "db-2",
+		"created_time": "2024-01-01T00:00:00.000Z",
+		"last_edited_time": "2024-01-02T00:00:00.000Z",
+		"created_by": {"object": "user", "id": "user-1"},
+		"last_edited_by": {"object": "user", "id": "user-1"},
+		"title": [],
+		"description": [],
+		"parent": {"type": "workspace", "workspace": true},
+		"url": "https://www.notion.so/db-2",
+		"public_url": null,
+		"archived": false,
+		"in_trash": false,
+		"is_inline": false,
+		"icon": null,
+		"cover": null,
+		"properties": {}
+	}`
+
+	var call int
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		call++
+		w.Header().Set("Content-Type", "application/json")
+		if call == 1 {
+			_, _ = w.Write([]byte(`{"object":"list","results":[` + databaseJSON + `],"has_more":true,"next_cursor":"cursor1"}`))
+		} else {
+			_, _ = w.Write([]byte(`{"object":"list","results":[` + db2JSON + `],"has_more":false,"next_cursor":null}`))
+		}
+	}))
+	defer srv.Close()
+
+	client := api.NewClient("token", api.WithBaseURL(srv.URL))
+	dbs, err := client.ListDatabases(t.Context())
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(dbs) != 2 {
+		t.Fatalf("want 2 databases, got %d", len(dbs))
+	}
+	if dbs[0].ID != "db-1" {
+		t.Errorf("dbs[0].ID = %q, want %q", dbs[0].ID, "db-1")
+	}
+	if dbs[1].ID != "db-2" {
+		t.Errorf("dbs[1].ID = %q, want %q", dbs[1].ID, "db-2")
+	}
+	if call != 2 {
+		t.Errorf("expected 2 HTTP calls, got %d", call)
+	}
+}
+
+func TestListDatabases_Error(t *testing.T) {
+	t.Parallel()
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusUnauthorized)
+		_, _ = w.Write([]byte(`{"status":401,"code":"unauthorized","message":"API token is invalid."}`))
+	}))
+	defer srv.Close()
+
+	client := api.NewClient("token", api.WithBaseURL(srv.URL))
+	_, err := client.ListDatabases(t.Context())
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+
+	var apiErr *api.APIError
+	if !api.AsAPIError(err, &apiErr) {
+		t.Fatalf("expected *APIError, got %T: %v", err, err)
+	}
+	if apiErr.Status != 401 {
+		t.Errorf("Status = %d, want 401", apiErr.Status)
+	}
+}
+
 func TestGetDatabase_NotFound(t *testing.T) {
 	t.Parallel()
 

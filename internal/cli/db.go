@@ -21,6 +21,7 @@ func NewDBCmd() *cobra.Command {
 		},
 	}
 	cmd.AddCommand(NewDBGetCmd())
+	cmd.AddCommand(NewDBListCmd())
 	return cmd
 }
 
@@ -34,6 +35,31 @@ func NewDBGetCmd() *cobra.Command {
 			return runDBGet(cmd.Context(), newClientFromCfg(), cmd.OutOrStdout(), cfg.Format, args[0])
 		},
 	}
+}
+
+// NewDBListCmd returns the "db list" cobra subcommand.
+func NewDBListCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "list",
+		Short: "List accessible Notion databases",
+		Args:  cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return runDBList(cmd.Context(), newClientFromCfg(), cmd.OutOrStdout(), cfg.Format)
+		},
+	}
+}
+
+func runDBList(ctx context.Context, client *api.Client, w io.Writer, format string) error {
+	dbs, err := client.ListDatabases(ctx)
+	if err != nil {
+		return mapAPIError(err)
+	}
+
+	f, err := output.New(format, isTerminal(w))
+	if err != nil {
+		return fmt.Errorf("output format: %w", err)
+	}
+	return f.Format(w, dbs)
 }
 
 func runDBGet(ctx context.Context, client *api.Client, w io.Writer, format, databaseID string) error {
