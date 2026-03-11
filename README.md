@@ -62,7 +62,7 @@ The default format is `auto`: JSON for interactive terminals, JSON Lines for pip
 
 | Format  | Description                     |
 |---------|---------------------------------|
-| `json`  | Pretty-printed JSON array       |
+| `json`  | Pretty-printed JSON             |
 | `jsonl` | One JSON object per line        |
 | `raw`   | Raw API response                |
 | `table` | Human-readable table            |
@@ -320,7 +320,7 @@ Append child blocks to a block. Children can be provided via the `--children` fl
 notion-cli block append <block_id> [flags]
 
 Flags:
-    --children string   Child blocks as JSON array (default "[]")
+    --children string   Child blocks as non-empty JSON array
 ```
 
 ```
@@ -538,7 +538,7 @@ Create a new Notion data source.
 notion-cli datasource create [flags]
 
 Flags:
-    --parent string       Parent database: database_id:<id> (required)
+    --parent string       Parent database: database_id:id (required)
     --title string        Data source title (plain text)
     --properties string   Properties as JSON object (required)
 ```
