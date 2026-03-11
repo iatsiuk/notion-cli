@@ -26,49 +26,49 @@
 ## Implementation Steps
 
 ### Task 1: Data source types and list API method
-- [ ] write tests in `internal/api/datasources_test.go`:
+- [x] write tests in `internal/api/datasources_test.go`:
   - ListDataSources returns paginated results
   - data source JSON deserialization
   - error handling
-- [ ] define DataSource struct in `internal/api/datasources.go` matching openapi.json schema
-- [ ] implement ListDataSources method on Client (GET /v1/data_sources)
-- [ ] run tests - must pass before next task
+- [x] define DataSource struct in `internal/api/datasources.go` matching openapi.json schema
+- [x] implement ListDataSources method on Client (GET /v1/data_sources)
+- [x] run tests - must pass before next task
 
 ### Task 2: Create, get, update API methods
-- [ ] write tests for CreateDataSource, GetDataSource, UpdateDataSource:
+- [x] write tests for CreateDataSource, GetDataSource, UpdateDataSource:
   - create returns new data source
   - get returns data source by ID
   - update modifies data source
   - error handling for each
-- [ ] implement all three methods on Client
-- [ ] run tests - must pass before next task
+- [x] implement all three methods on Client
+- [x] run tests - must pass before next task
 
 ### Task 3: Query and templates API methods
-- [ ] write tests for QueryDataSource and GetDataSourceTemplates:
+- [x] write tests for QueryDataSource and GetDataSourceTemplates:
   - query returns structured data
   - templates returns available templates
   - pagination handling
   - error handling
-- [ ] implement QueryDataSource (POST /v1/data_sources/{id}/query)
-- [ ] implement GetDataSourceTemplates (GET /v1/data_sources/{id}/templates)
-- [ ] run tests - must pass before next task
+- [x] implement QueryDataSource (POST /v1/data_sources/{id}/query)
+- [x] implement GetDataSourceTemplates (GET /v1/data_sources/{id}/templates)
+- [x] run tests - must pass before next task
 
 ### Task 4: Data source CLI commands
-- [ ] write tests for all datasource subcommands in `internal/cli/datasource_test.go`
-- [ ] implement `datasource list` command
-- [ ] implement `datasource create` command
-- [ ] implement `datasource get` command
-- [ ] implement `datasource update` command
-- [ ] implement `datasource query` command with --filter flag
-- [ ] implement `datasource templates` command
-- [ ] run tests - must pass before next task
+- [x] write tests for all datasource subcommands in `internal/cli/datasource_test.go`
+- [x] implement `datasource list` command
+- [x] implement `datasource create` command
+- [x] implement `datasource get` command
+- [x] implement `datasource update` command
+- [x] implement `datasource query` command with --filter flag
+- [x] implement `datasource templates` command
+- [x] run tests - must pass before next task
 
 ### Task 5: Verify acceptance criteria
-- [ ] verify all datasource commands work
-- [ ] verify query with filters
-- [ ] verify pagination in list and query
-- [ ] run full test suite with `make test`
-- [ ] run linter with `make build` - all issues must be fixed
+- [x] verify all datasource commands work
+- [x] verify query with filters
+- [x] verify pagination in list and query
+- [x] run full test suite with `make test`
+- [x] run linter with `make build` - all issues must be fixed
 
 ## Technical Details
 - DataSource struct: id, object, type, name, config

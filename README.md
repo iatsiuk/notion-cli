@@ -70,6 +70,26 @@ notion-cli db query <database-id>
 notion-cli db query <database-id> --filter '{"property":"Status","select":{"equals":"Done"}}'
 notion-cli db query <database-id> --sort '[{"property":"Name","direction":"ascending"}]'
 
+# list data sources
+notion-cli datasource list
+
+# get a data source
+notion-cli datasource get <data-source-id>
+
+# create a data source
+notion-cli datasource create --parent database_id:<db-id> --title "My Source" --properties '{}'
+
+# update a data source
+notion-cli datasource update <data-source-id> --title "New Title"
+notion-cli datasource update <data-source-id> --properties '{}'
+
+# query a data source
+notion-cli datasource query <data-source-id>
+notion-cli datasource query <data-source-id> --filter '{"property":"Status","select":{"equals":"Done"}}'
+
+# get templates for a data source
+notion-cli datasource templates <data-source-id>
+
 # server status
 notion-cli status
 
