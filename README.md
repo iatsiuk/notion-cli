@@ -119,9 +119,6 @@ notion-cli file create --filename report.pdf --content-type application/pdf
 # get file upload status
 notion-cli file get <file_upload_id>
 
-# delete a file upload
-notion-cli file delete <file_upload_id>
-
 # upload file content to an existing file upload
 notion-cli file send <file_upload_id> ./report.pdf
 notion-cli file send <file_upload_id> ./report.pdf --part 1
