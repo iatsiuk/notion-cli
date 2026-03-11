@@ -115,7 +115,7 @@ func (c *Client) SendFileContent(ctx context.Context, fileUploadID, filename, co
 // CompleteFileUpload marks a file upload as complete (POST /v1/file_uploads/{id}/complete).
 func (c *Client) CompleteFileUpload(ctx context.Context, fileUploadID string) (*FileUpload, error) {
 	path := "/v1/file_uploads/" + url.PathEscape(fileUploadID) + "/complete"
-	raw, err := c.Post(ctx, path, struct{}{})
+	raw, err := c.Post(ctx, path, nil)
 	if err != nil {
 		return nil, err
 	}
