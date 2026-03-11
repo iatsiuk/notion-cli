@@ -116,14 +116,9 @@ func NewBlockAppendCmd() *cobra.Command {
 	return cmd
 }
 
-// isInputTerminal reports whether r is a character device (TTY).
-func isInputTerminal(r io.Reader) bool {
-	return isCharDevice(r)
-}
-
 func runBlockAppend(ctx context.Context, client *api.Client, w io.Writer, stdin io.Reader, format, blockID, childrenJSON string, childrenFlagSet bool) error {
 	if !childrenFlagSet {
-		if isInputTerminal(stdin) {
+		if isCharDevice(stdin) {
 			return fmt.Errorf("stdin is a terminal: provide --children flag or pipe JSON array via stdin")
 		}
 		data, err := io.ReadAll(stdin)
