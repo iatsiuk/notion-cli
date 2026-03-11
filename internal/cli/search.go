@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/spf13/cobra"
 
@@ -20,7 +21,7 @@ func NewSearchCmd() *cobra.Command {
 		Short: "Search Notion pages and databases",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if args[0] == "" {
+			if strings.TrimSpace(args[0]) == "" {
 				return fmt.Errorf("query must not be empty")
 			}
 			return runSearch(cmd.Context(), newClientFromCfg(), cmd.OutOrStdout(), cfg.Format, args[0], typeFlag, sortFlag)
@@ -48,14 +49,15 @@ func runSearch(ctx context.Context, client *api.Client, w io.Writer, format, que
 		req.Sort = &api.SearchSort{Direction: sortDir, Timestamp: "last_edited_time"}
 	}
 
+	f, err := output.New(format, isTerminal(w))
+	if err != nil {
+		return fmt.Errorf("output format: %w", err)
+	}
+
 	results, err := client.Search(ctx, req)
 	if err != nil {
 		return mapAPIError(err)
 	}
 
-	f, err := output.New(format, isTerminal(w))
-	if err != nil {
-		return fmt.Errorf("output format: %w", err)
-	}
 	return f.Format(w, results)
 }
