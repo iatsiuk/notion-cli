@@ -322,3 +322,94 @@ func TestCreatePage_Error(t *testing.T) {
 		t.Errorf("Status = %d, want 400", apiErr.Status)
 	}
 }
+
+func TestUpdatePage_UpdatesProperties(t *testing.T) {
+	t.Parallel()
+
+	var gotBody map[string]any
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v1/pages/page-1" || r.Method != http.MethodPatch {
+			http.Error(w, "not found", http.StatusNotFound)
+			return
+		}
+		if err := json.NewDecoder(r.Body).Decode(&gotBody); err != nil {
+			http.Error(w, "bad request", http.StatusBadRequest)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(pageJSON))
+	}))
+	defer srv.Close()
+
+	client := api.NewClient("token", api.WithBaseURL(srv.URL))
+	props := map[string]any{
+		"Name": map[string]any{"title": []any{map[string]any{"text": map[string]any{"content": "Updated"}}}},
+	}
+	req := &api.UpdatePageRequest{Properties: props}
+	page, err := client.UpdatePage(t.Context(), "page-1", req)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if page.ID != "page-1" {
+		t.Errorf("ID = %q, want %q", page.ID, "page-1")
+	}
+	if _, ok := gotBody["properties"]; !ok {
+		t.Error("properties missing in request body")
+	}
+}
+
+func TestUpdatePage_Archives(t *testing.T) {
+	t.Parallel()
+
+	var gotBody map[string]any
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v1/pages/page-1" || r.Method != http.MethodPatch {
+			http.Error(w, "not found", http.StatusNotFound)
+			return
+		}
+		if err := json.NewDecoder(r.Body).Decode(&gotBody); err != nil {
+			http.Error(w, "bad request", http.StatusBadRequest)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(pageJSON))
+	}))
+	defer srv.Close()
+
+	archived := true
+	client := api.NewClient("token", api.WithBaseURL(srv.URL))
+	req := &api.UpdatePageRequest{Archived: &archived}
+	_, err := client.UpdatePage(t.Context(), "page-1", req)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	v, ok := gotBody["archived"].(bool)
+	if !ok || !v {
+		t.Errorf("archived = %v, want true", gotBody["archived"])
+	}
+}
+
+func TestUpdatePage_Error(t *testing.T) {
+	t.Parallel()
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+		_, _ = w.Write([]byte(`{"status":404,"code":"object_not_found","message":"page not found"}`))
+	}))
+	defer srv.Close()
+
+	client := api.NewClient("token", api.WithBaseURL(srv.URL))
+	req := &api.UpdatePageRequest{}
+	_, err := client.UpdatePage(t.Context(), "bad-id", req)
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+
+	var apiErr *api.APIError
+	if !api.AsAPIError(err, &apiErr) {
+		t.Fatalf("expected *APIError, got %T: %v", err, err)
+	}
+	if apiErr.Status != 404 {
+		t.Errorf("Status = %d, want 404", apiErr.Status)
+	}
+}

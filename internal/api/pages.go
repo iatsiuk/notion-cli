@@ -62,6 +62,27 @@ func (c *Client) CreatePage(ctx context.Context, req *CreatePageRequest) (*Page,
 	return &p, nil
 }
 
+// UpdatePageRequest is the body for updating an existing page.
+type UpdatePageRequest struct {
+	Properties map[string]any `json:"properties,omitempty"`
+	Archived   *bool          `json:"archived,omitempty"`
+	Icon       any            `json:"icon,omitempty"`
+	Cover      any            `json:"cover,omitempty"`
+}
+
+// UpdatePage updates an existing page by ID.
+func (c *Client) UpdatePage(ctx context.Context, pageID string, req *UpdatePageRequest) (*Page, error) {
+	raw, err := c.Patch(ctx, "/v1/pages/"+url.PathEscape(pageID), req)
+	if err != nil {
+		return nil, err
+	}
+	var p Page
+	if err := json.Unmarshal(raw, &p); err != nil {
+		return nil, fmt.Errorf("decode page: %w", err)
+	}
+	return &p, nil
+}
+
 // GetPage retrieves a page by ID.
 func (c *Client) GetPage(ctx context.Context, pageID string) (*Page, error) {
 	raw, err := c.Get(ctx, "/v1/pages/"+url.PathEscape(pageID), nil)

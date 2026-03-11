@@ -24,6 +24,7 @@ func NewPageCmd() *cobra.Command {
 	}
 	cmd.AddCommand(NewPageGetCmd())
 	cmd.AddCommand(NewPageCreateCmd())
+	cmd.AddCommand(NewPageUpdateCmd())
 	return cmd
 }
 
@@ -85,6 +86,52 @@ func parseParent(s string) (api.Parent, error) {
 	default:
 		return api.Parent{}, fmt.Errorf("unsupported parent type %q: use database_id or page_id", typ)
 	}
+}
+
+// NewPageUpdateCmd returns the "page update" cobra subcommand.
+func NewPageUpdateCmd() *cobra.Command {
+	var propertiesFlag string
+	var archiveFlag, unarchiveFlag bool
+
+	cmd := &cobra.Command{
+		Use:   "update <page_id>",
+		Short: "Update a Notion page",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return runPageUpdate(cmd.Context(), newClientFromCfg(), cmd.OutOrStdout(), cfg.Format, args[0], propertiesFlag, archiveFlag, unarchiveFlag)
+		},
+	}
+	cmd.Flags().StringVar(&propertiesFlag, "properties", "{}", "Properties as JSON object")
+	cmd.Flags().BoolVar(&archiveFlag, "archive", false, "Archive the page")
+	cmd.Flags().BoolVar(&unarchiveFlag, "unarchive", false, "Unarchive the page")
+	return cmd
+}
+
+func runPageUpdate(ctx context.Context, client *api.Client, w io.Writer, format, pageID, propertiesJSON string, archive, unarchive bool) error {
+	var props map[string]any
+	if err := json.Unmarshal([]byte(propertiesJSON), &props); err != nil {
+		return fmt.Errorf("--properties: %w", err)
+	}
+
+	req := &api.UpdatePageRequest{Properties: props}
+	if archive {
+		t := true
+		req.Archived = &t
+	} else if unarchive {
+		f := false
+		req.Archived = &f
+	}
+
+	page, err := client.UpdatePage(ctx, pageID, req)
+	if err != nil {
+		return mapAPIError(err)
+	}
+
+	f, err := output.New(format, isTerminal(w))
+	if err != nil {
+		return fmt.Errorf("output format: %w", err)
+	}
+	return f.Format(w, page)
 }
 
 func runPageCreate(ctx context.Context, client *api.Client, w io.Writer, format, parentStr, propertiesJSON string) error {
