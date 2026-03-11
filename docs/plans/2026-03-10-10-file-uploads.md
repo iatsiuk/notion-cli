@@ -74,11 +74,11 @@
 - [x] run tests - must pass before next task
 
 ### Task 7: Verify acceptance criteria
-- [ ] verify all file upload commands work
-- [ ] verify multipart upload works
-- [ ] verify all-in-one upload command
-- [ ] run full test suite with `make test`
-- [ ] run linter with `make build` - all issues must be fixed
+- [x] verify all file upload commands work
+- [x] verify multipart upload works
+- [x] verify all-in-one upload command
+- [x] run full test suite with `make test`
+- [x] run linter with `make build` - all issues must be fixed
 
 ## Technical Details
 - FileUpload struct: id, object, status, filename, content_type, size
