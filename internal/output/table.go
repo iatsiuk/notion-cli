@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"reflect"
 	"sort"
 	"strings"
 	"unicode/utf8"
@@ -59,8 +60,54 @@ func toRows(data any) ([]map[string]any, error) {
 	case map[string]any:
 		return []map[string]any{v}, nil
 	default:
+		return structToRows(data)
+	}
+}
+
+// structToRows handles arbitrary struct/pointer/slice types via JSON round-trip.
+func structToRows(data any) ([]map[string]any, error) {
+	rv := reflect.ValueOf(data)
+	for rv.Kind() == reflect.Ptr {
+		if rv.IsNil() {
+			return nil, nil
+		}
+		rv = rv.Elem()
+	}
+	switch rv.Kind() {
+	case reflect.Slice:
+		return jsonSliceToRows(data, rv.Len())
+	case reflect.Struct:
+		return jsonStructToRow(data)
+	default:
 		return nil, fmt.Errorf("table format: unsupported type %T", data)
 	}
+}
+
+func jsonSliceToRows(data any, length int) ([]map[string]any, error) {
+	if length == 0 {
+		return nil, nil
+	}
+	b, err := json.Marshal(data)
+	if err != nil {
+		return nil, fmt.Errorf("table format: marshal: %w", err)
+	}
+	var rows []map[string]any
+	if err := json.Unmarshal(b, &rows); err != nil {
+		return nil, fmt.Errorf("table format: decode slice: %w", err)
+	}
+	return rows, nil
+}
+
+func jsonStructToRow(data any) ([]map[string]any, error) {
+	b, err := json.Marshal(data)
+	if err != nil {
+		return nil, fmt.Errorf("table format: marshal: %w", err)
+	}
+	var m map[string]any
+	if err := json.Unmarshal(b, &m); err != nil {
+		return nil, fmt.Errorf("table format: decode struct: %w", err)
+	}
+	return []map[string]any{m}, nil
 }
 
 func rawMessagesToRows(items []json.RawMessage) ([]map[string]any, error) {

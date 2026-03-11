@@ -449,3 +449,132 @@ func TestNewFileUploadCmd_MissingArgument(t *testing.T) {
 		t.Fatal("expected error for missing argument, got nil")
 	}
 }
+
+func TestRunFileUpload_SkipsCompleteWhenAlreadyUploaded(t *testing.T) {
+	t.Parallel()
+	var completeCalled atomic.Bool
+	const uploadedJSON = `{
+		"object": "file_upload",
+		"id": "fu-1",
+		"created_time": "2024-01-01T00:00:00.000Z",
+		"created_by": {"id": "user-1", "type": "user"},
+		"last_edited_time": "2024-01-01T00:00:00.000Z",
+		"in_trash": false,
+		"expiry_time": null,
+		"status": "uploaded",
+		"filename": "hello.txt",
+		"content_type": "text/plain",
+		"content_length": 12,
+		"upload_url": "",
+		"complete_url": "",
+		"number_of_parts": {"total": 1, "sent": 1}
+	}`
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		if r.URL.Path == "/v1/file_uploads/fu-1/complete" {
+			completeCalled.Store(true)
+			w.WriteHeader(http.StatusConflict)
+			_, _ = w.Write([]byte(`{"status":409,"code":"conflict","message":"already uploaded"}`))
+			return
+		}
+		if r.URL.Path == "/v1/file_uploads/fu-1/send" {
+			_, _ = w.Write([]byte(uploadedJSON))
+			return
+		}
+		// create returns pending with ID
+		_, _ = w.Write([]byte(testFileUploadJSON))
+	}))
+	defer srv.Close()
+
+	tmp := t.TempDir()
+	fpath := filepath.Join(tmp, "hello.txt")
+	if err := os.WriteFile(fpath, []byte("hello world\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	client := api.NewClient("token", api.WithBaseURL(srv.URL), api.WithHTTPClient(srv.Client()))
+	var buf bytes.Buffer
+	err := runFileUpload(context.Background(), client, &buf, "json", fpath)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if completeCalled.Load() {
+		t.Error("complete was called but should have been skipped (status was already 'uploaded' after send)")
+	}
+	if !strings.Contains(buf.String(), "uploaded") {
+		t.Errorf("output should contain 'uploaded' status, got: %s", buf.String())
+	}
+}
+
+func TestRunFileUpload_CompletesWhenPending(t *testing.T) {
+	t.Parallel()
+	var completeCalled atomic.Bool
+	const pendingJSON = `{
+		"object": "file_upload",
+		"id": "fu-1",
+		"created_time": "2024-01-01T00:00:00.000Z",
+		"created_by": {"id": "user-1", "type": "user"},
+		"last_edited_time": "2024-01-01T00:00:00.000Z",
+		"in_trash": false,
+		"expiry_time": null,
+		"status": "pending",
+		"filename": "hello.txt",
+		"content_type": "text/plain",
+		"content_length": 12,
+		"upload_url": "https://upload.notion.so/fu-1",
+		"complete_url": "https://api.notion.com/v1/file_uploads/fu-1/complete",
+		"number_of_parts": {"total": 1, "sent": 1}
+	}`
+	const uploadedJSON = `{
+		"object": "file_upload",
+		"id": "fu-1",
+		"created_time": "2024-01-01T00:00:00.000Z",
+		"created_by": {"id": "user-1", "type": "user"},
+		"last_edited_time": "2024-01-01T00:00:00.000Z",
+		"in_trash": false,
+		"expiry_time": null,
+		"status": "uploaded",
+		"filename": "hello.txt",
+		"content_type": "text/plain",
+		"content_length": 12,
+		"upload_url": "",
+		"complete_url": "",
+		"number_of_parts": {"total": 1, "sent": 1}
+	}`
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		switch r.URL.Path {
+		case "/v1/file_uploads":
+			_, _ = w.Write([]byte(testFileUploadJSON))
+		case "/v1/file_uploads/fu-1/send":
+			_, _ = w.Write([]byte(pendingJSON))
+		case "/v1/file_uploads/fu-1/complete":
+			completeCalled.Store(true)
+			_, _ = w.Write([]byte(uploadedJSON))
+		default:
+			http.Error(w, "not found", http.StatusNotFound)
+		}
+	}))
+	defer srv.Close()
+
+	tmp := t.TempDir()
+	fpath := filepath.Join(tmp, "hello.txt")
+	if err := os.WriteFile(fpath, []byte("hello world\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	client := api.NewClient("token", api.WithBaseURL(srv.URL), api.WithHTTPClient(srv.Client()))
+	var buf bytes.Buffer
+	err := runFileUpload(context.Background(), client, &buf, "json", fpath)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !completeCalled.Load() {
+		t.Error("complete was not called but should have been (status was 'pending' after send)")
+	}
+	if !strings.Contains(buf.String(), "uploaded") {
+		t.Errorf("output should contain 'uploaded' status, got: %s", buf.String())
+	}
+}

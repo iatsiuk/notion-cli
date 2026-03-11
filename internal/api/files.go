@@ -108,13 +108,14 @@ func (c *Client) SendFileContent(ctx context.Context, fileUploadID, filename, co
 	path := "/v1/file_uploads/" + url.PathEscape(fileUploadID) + "/send"
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL+path, pr)
 	if err != nil {
-		_ = pw.CloseWithError(err)
+		_ = pr.CloseWithError(err)
 		return nil, fmt.Errorf("build request: %w", err)
 	}
 	req.Header.Set("Content-Type", mw.FormDataContentType())
 
 	raw, err := c.do(req)
 	if err != nil {
+		_ = pr.CloseWithError(err)
 		return nil, err
 	}
 	var fu FileUpload

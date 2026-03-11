@@ -9,22 +9,24 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
+	"golang.org/x/term"
 
 	"notion-cli/internal/api"
 	"notion-cli/internal/output"
 )
 
-// isTerminal reports whether w is a character device (TTY).
-func isTerminal(w io.Writer) bool {
-	f, ok := w.(*os.File)
+// isTTY reports whether v (*os.File) is a TTY.
+func isTTY(v any) bool {
+	f, ok := v.(*os.File)
 	if !ok {
 		return false
 	}
-	fi, err := f.Stat()
-	if err != nil {
-		return false
-	}
-	return fi.Mode()&os.ModeCharDevice != 0
+	return term.IsTerminal(int(f.Fd())) //nolint:gosec
+}
+
+// isTerminal reports whether w is a TTY.
+func isTerminal(w io.Writer) bool {
+	return isTTY(w)
 }
 
 // NewUserCmd returns the parent "user" cobra command with subcommands.

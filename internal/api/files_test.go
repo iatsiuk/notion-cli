@@ -327,6 +327,38 @@ func TestCompleteFileUpload(t *testing.T) {
 	}
 }
 
+func TestSendFileContent_ReturnsStatus(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		name       string
+		respStatus string
+		wantStatus string
+	}{
+		{"uploaded", "uploaded", "uploaded"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			resp := strings.Replace(fileUploadJSON, `"status": "pending"`, `"status": "`+tc.respStatus+`"`, 1)
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				_, _ = w.Write([]byte(resp))
+			}))
+			defer srv.Close()
+
+			client := api.NewClient("token", api.WithBaseURL(srv.URL))
+			fu, err := client.SendFileContent(t.Context(), "fu-123", "test.pdf", "application/pdf", strings.NewReader("data"), 0)
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if fu.Status != tc.wantStatus {
+				t.Errorf("Status = %q, want %q", fu.Status, tc.wantStatus)
+			}
+		})
+	}
+}
+
 func TestCompleteFileUpload_Error(t *testing.T) {
 	t.Parallel()
 

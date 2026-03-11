@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
 
@@ -626,5 +627,64 @@ func TestRunBlockDelete_NotFound(t *testing.T) {
 	}
 	if cliErr.Code != ExitAPI {
 		t.Errorf("expected exit code %d, got %d", ExitAPI, cliErr.Code)
+	}
+}
+
+func TestIsTTY_StringsReaderReturnsFalse(t *testing.T) {
+	t.Parallel()
+	r := strings.NewReader("some data")
+	if isTTY(r) {
+		t.Error("expected false for strings.Reader, got true")
+	}
+}
+
+func TestIsTTY_DevNullReturnsFalse(t *testing.T) {
+	t.Parallel()
+	f, err := os.Open("/dev/null")
+	if err != nil {
+		t.Skipf("cannot open /dev/null: %v", err)
+	}
+	defer func() { _ = f.Close() }()
+
+	if isTTY(f) {
+		t.Error("expected false for /dev/null (not a TTY), got true")
+	}
+}
+
+func TestRunBlockAppend_ErrorsOnTTYStdin(t *testing.T) {
+	t.Parallel()
+	f, err := os.Open("/dev/tty")
+	if err != nil {
+		t.Skipf("cannot open /dev/tty: %v", err)
+	}
+	defer func() { _ = f.Close() }()
+
+	client := api.NewClient("token")
+	var buf bytes.Buffer
+	err = runBlockAppend(context.Background(), client, &buf, f, "json", "block-1", "[]", false)
+	if err == nil {
+		t.Fatal("expected error for TTY stdin, got nil")
+	}
+	if !strings.Contains(err.Error(), "stdin is a terminal") {
+		t.Errorf("expected TTY error, got: %v", err)
+	}
+}
+
+func TestRunBlockAppend_ErrorsOnEmptyStdin(t *testing.T) {
+	t.Parallel()
+	f, err := os.Open("/dev/null")
+	if err != nil {
+		t.Skipf("cannot open /dev/null: %v", err)
+	}
+	defer func() { _ = f.Close() }()
+
+	client := api.NewClient("token")
+	var buf bytes.Buffer
+	err = runBlockAppend(context.Background(), client, &buf, f, "json", "block-1", "[]", false)
+	if err == nil {
+		t.Fatal("expected error for empty stdin, got nil")
+	}
+	if !strings.Contains(err.Error(), "provide --children flag or pipe JSON array via stdin") {
+		t.Errorf("expected error about missing input, got: %v", err)
 	}
 }

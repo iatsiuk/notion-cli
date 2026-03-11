@@ -118,6 +118,9 @@ func NewBlockAppendCmd() *cobra.Command {
 
 func runBlockAppend(ctx context.Context, client *api.Client, w io.Writer, stdin io.Reader, format, blockID, childrenJSON string, childrenFlagSet bool) error {
 	if !childrenFlagSet {
+		if isTTY(stdin) {
+			return fmt.Errorf("stdin is a terminal: provide --children flag or pipe JSON array via stdin")
+		}
 		data, err := io.ReadAll(stdin)
 		if err != nil {
 			return fmt.Errorf("reading stdin: %w", err)
