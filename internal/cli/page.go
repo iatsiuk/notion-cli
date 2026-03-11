@@ -81,6 +81,9 @@ func parseParent(s string) (api.Parent, error) {
 		return api.Parent{}, fmt.Errorf("invalid parent format %q: expected type:id", s)
 	}
 	typ, id := s[:idx], s[idx+1:]
+	if id == "" {
+		return api.Parent{}, fmt.Errorf("invalid parent format %q: id is empty", s)
+	}
 	switch typ {
 	case "database_id":
 		return api.Parent{Type: "database_id", DatabaseID: id}, nil
@@ -101,6 +104,9 @@ func parseMoveParent(s string) (api.Parent, error) {
 		return api.Parent{}, fmt.Errorf("invalid parent format %q: expected type:id", s)
 	}
 	typ, id := s[:idx], s[idx+1:]
+	if id == "" {
+		return api.Parent{}, fmt.Errorf("invalid parent format %q: id is empty", s)
+	}
 	switch typ {
 	case "page_id":
 		return api.Parent{Type: "page_id", PageID: id}, nil

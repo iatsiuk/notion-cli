@@ -86,15 +86,16 @@ func (c *Client) UpdatePage(ctx context.Context, pageID string, req *UpdatePageR
 
 // propertyListPage is a partial decode of a paginated property response.
 type propertyListPage struct {
-	Object     string            `json:"object"`
-	Type       string            `json:"type"`
-	Results    []json.RawMessage `json:"results"`
-	NextCursor *string           `json:"next_cursor"`
-	HasMore    bool              `json:"has_more"`
+	Object       string            `json:"object"`
+	Type         string            `json:"type"`
+	PropertyItem json.RawMessage   `json:"property_item,omitempty"`
+	Results      []json.RawMessage `json:"results"`
+	NextCursor   *string           `json:"next_cursor"`
+	HasMore      bool              `json:"has_more"`
 }
 
 // collectPropertyPages fetches all remaining pages for a paginated property.
-func (c *Client) collectPropertyPages(ctx context.Context, path string, first propertyListPage) ([]json.RawMessage, error) {
+func (c *Client) collectPropertyPages(ctx context.Context, path string, first *propertyListPage) ([]json.RawMessage, error) {
 	allResults := make([]json.RawMessage, 0, len(first.Results))
 	allResults = append(allResults, first.Results...)
 
@@ -145,16 +146,17 @@ func (c *Client) GetPageProperty(ctx context.Context, pageID, propertyID string)
 		return nil, fmt.Errorf("pagination: has_more=true but next_cursor is null")
 	}
 
-	allResults, err := c.collectPropertyPages(ctx, path, first)
+	allResults, err := c.collectPropertyPages(ctx, path, &first)
 	if err != nil {
 		return nil, err
 	}
 
 	merged := propertyListPage{
-		Object:  first.Object,
-		Type:    first.Type,
-		Results: allResults,
-		HasMore: false,
+		Object:       first.Object,
+		Type:         first.Type,
+		PropertyItem: first.PropertyItem,
+		Results:      allResults,
+		HasMore:      false,
 	}
 	out, err := json.Marshal(merged)
 	if err != nil {
