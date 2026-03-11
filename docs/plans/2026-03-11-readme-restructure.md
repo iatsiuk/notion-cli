@@ -101,10 +101,10 @@
 - [x] write 3-4 pipeline examples using jq with notion-cli commands
 
 ### Task 14: Final review
-- [ ] verify all commands from codebase are documented
-- [ ] verify all flags match cobra definitions
-- [ ] verify consistent formatting across all sections
-- [ ] run `make build` to ensure no accidental code changes
+- [x] verify all commands from codebase are documented
+- [x] verify all flags match cobra definitions
+- [x] verify consistent formatting across all sections
+- [x] run `make build` to ensure no accidental code changes
 
 ## Technical Details
 - Structure order: Installation -> Authentication -> Global Flags -> Output Formats -> Exit Codes -> Commands (search, page, db, block, comment, user, file, datasource, oauth, status) -> Pipe-friendly Workflows

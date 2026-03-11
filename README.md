@@ -338,6 +338,7 @@ notion-cli block delete <block_id>
 
 ```
 notion-cli block delete abc123
+```
 
 ## Comment Commands
 
@@ -666,7 +667,7 @@ notion-cli outputs JSON by default on TTY and JSONL (one JSON object per line) w
 Extract all page titles from a database query:
 
 ```sh
-notion-cli db query <database_id> | jq -r '.results[].properties.Name.title[].plain_text'
+notion-cli db query <database_id> | jq -r '.properties.Name.title[].plain_text'
 ```
 
 Get IDs of all pages in a database whose Status is "Done":
@@ -674,13 +675,13 @@ Get IDs of all pages in a database whose Status is "Done":
 ```sh
 notion-cli db query <database_id> \
   --filter '{"property":"Status","status":{"equals":"Done"}}' \
-  | jq -r '.results[].id'
+  | jq -r '.id'
 ```
 
 Archive all pages returned by a search and print their titles:
 
 ```sh
-notion-cli search "meeting notes" | jq -r '.results[].id' | while read id; do
+notion-cli search "meeting notes" | jq -r '.id' | while read id; do
   title=$(notion-cli page get "$id" | jq -r '.properties.title.title[].plain_text')
   notion-cli page update "$id" --archive
   echo "archived: $title"
@@ -690,5 +691,5 @@ done
 List all workspace users and extract name/email pairs as TSV:
 
 ```sh
-notion-cli user list | jq -r '.results[] | [.name, .person.email // ""] | @tsv'
+notion-cli user list | jq -r '[.name, .person.email // ""] | @tsv'
 ```
