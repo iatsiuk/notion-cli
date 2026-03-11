@@ -1,0 +1,64 @@
+package api
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"net/url"
+)
+
+// Block represents a Notion block object.
+type Block struct {
+	Object         string      `json:"object"`
+	ID             string      `json:"id"`
+	Type           string      `json:"type"`
+	HasChildren    bool        `json:"has_children"`
+	Archived       bool        `json:"archived"`
+	CreatedTime    string      `json:"created_time"`
+	LastEditedTime string      `json:"last_edited_time"`
+	CreatedBy      PartialUser `json:"created_by"`
+	LastEditedBy   PartialUser `json:"last_edited_by"`
+	Parent         Parent      `json:"parent"`
+	// type-specific content fields
+	Paragraph        json.RawMessage `json:"paragraph,omitempty"`
+	Heading1         json.RawMessage `json:"heading_1,omitempty"`
+	Heading2         json.RawMessage `json:"heading_2,omitempty"`
+	Heading3         json.RawMessage `json:"heading_3,omitempty"`
+	BulletedListItem json.RawMessage `json:"bulleted_list_item,omitempty"`
+	NumberedListItem json.RawMessage `json:"numbered_list_item,omitempty"`
+	ToDo             json.RawMessage `json:"to_do,omitempty"`
+	Toggle           json.RawMessage `json:"toggle,omitempty"`
+	Code             json.RawMessage `json:"code,omitempty"`
+	Image            json.RawMessage `json:"image,omitempty"`
+	Quote            json.RawMessage `json:"quote,omitempty"`
+	Callout          json.RawMessage `json:"callout,omitempty"`
+	Divider          json.RawMessage `json:"divider,omitempty"`
+	TableOfContents  json.RawMessage `json:"table_of_contents,omitempty"`
+	Embed            json.RawMessage `json:"embed,omitempty"`
+	Bookmark         json.RawMessage `json:"bookmark,omitempty"`
+	Video            json.RawMessage `json:"video,omitempty"`
+	File             json.RawMessage `json:"file,omitempty"`
+	PDF              json.RawMessage `json:"pdf,omitempty"`
+	Table            json.RawMessage `json:"table,omitempty"`
+	TableRow         json.RawMessage `json:"table_row,omitempty"`
+	ColumnList       json.RawMessage `json:"column_list,omitempty"`
+	Column           json.RawMessage `json:"column,omitempty"`
+	ChildPage        json.RawMessage `json:"child_page,omitempty"`
+	ChildDatabase    json.RawMessage `json:"child_database,omitempty"`
+	SyncedBlock      json.RawMessage `json:"synced_block,omitempty"`
+	Template         json.RawMessage `json:"template,omitempty"`
+	LinkPreview      json.RawMessage `json:"link_preview,omitempty"`
+}
+
+// GetBlock retrieves a block by ID.
+func (c *Client) GetBlock(ctx context.Context, blockID string) (*Block, error) {
+	raw, err := c.Get(ctx, "/v1/blocks/"+url.PathEscape(blockID), nil)
+	if err != nil {
+		return nil, err
+	}
+	var b Block
+	if err := json.Unmarshal(raw, &b); err != nil {
+		return nil, fmt.Errorf("decode block: %w", err)
+	}
+	return &b, nil
+}
