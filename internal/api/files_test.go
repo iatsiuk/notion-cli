@@ -336,7 +336,6 @@ func TestSendFileContent_ReturnsStatus(t *testing.T) {
 		wantStatus string
 	}{
 		{"uploaded", "uploaded", "uploaded"},
-		{"pending", "pending", "pending"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

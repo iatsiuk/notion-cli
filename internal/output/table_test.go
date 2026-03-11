@@ -118,8 +118,8 @@ func TestTableFormat_APIUser(t *testing.T) {
 		t.Fatalf("Format(*api.User) error = %v", err)
 	}
 	got := buf.String()
-	if !strings.Contains(got, "id") {
-		t.Errorf("output does not contain 'id' column: %q", got)
+	if !strings.Contains(got, " id ") {
+		t.Errorf("output does not contain 'id' column header: %q", got)
 	}
 	if !strings.Contains(got, "user-abc-123") {
 		t.Errorf("output does not contain user ID: %q", got)
@@ -164,8 +164,8 @@ func TestTableFormat_APIDatabase(t *testing.T) {
 		t.Fatalf("Format(*api.Database) error = %v", err)
 	}
 	got := buf.String()
-	if !strings.Contains(got, "id") {
-		t.Errorf("output does not contain 'id' column: %q", got)
+	if !strings.Contains(got, " id ") {
+		t.Errorf("output does not contain 'id' column header: %q", got)
 	}
 	if !strings.Contains(got, "db-abc-123") {
 		t.Errorf("output does not contain database ID: %q", got)

@@ -14,9 +14,9 @@ import (
 	"notion-cli/internal/output"
 )
 
-// isTerminal reports whether w is a character device (TTY).
-func isTerminal(w io.Writer) bool {
-	f, ok := w.(*os.File)
+// isCharDevice reports whether v (*os.File) is a character device.
+func isCharDevice(v any) bool {
+	f, ok := v.(*os.File)
 	if !ok {
 		return false
 	}
@@ -25,6 +25,11 @@ func isTerminal(w io.Writer) bool {
 		return false
 	}
 	return fi.Mode()&os.ModeCharDevice != 0
+}
+
+// isTerminal reports whether w is a character device (TTY).
+func isTerminal(w io.Writer) bool {
+	return isCharDevice(w)
 }
 
 // NewUserCmd returns the parent "user" cobra command with subcommands.
