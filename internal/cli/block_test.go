@@ -630,15 +630,15 @@ func TestRunBlockDelete_NotFound(t *testing.T) {
 	}
 }
 
-func TestIsCharDevice_StringsReaderReturnsFalse(t *testing.T) {
+func TestIsTTY_StringsReaderReturnsFalse(t *testing.T) {
 	t.Parallel()
 	r := strings.NewReader("some data")
-	if isCharDevice(r) {
+	if isTTY(r) {
 		t.Error("expected false for strings.Reader, got true")
 	}
 }
 
-func TestIsCharDevice_DevNullReturnsFalse(t *testing.T) {
+func TestIsTTY_DevNullReturnsFalse(t *testing.T) {
 	t.Parallel()
 	f, err := os.Open("/dev/null")
 	if err != nil {
@@ -646,7 +646,7 @@ func TestIsCharDevice_DevNullReturnsFalse(t *testing.T) {
 	}
 	defer func() { _ = f.Close() }()
 
-	if isCharDevice(f) {
+	if isTTY(f) {
 		t.Error("expected false for /dev/null (not a TTY), got true")
 	}
 }
