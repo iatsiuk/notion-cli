@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"sync/atomic"
 	"testing"
 
 	"notion-cli/internal/api"
@@ -452,14 +453,14 @@ func TestGetPageProperty_HandlesPagination(t *testing.T) {
 	const item1 = `{"object":"property_item","type":"rich_text","rich_text":{"plain_text":"Hello"}}`
 	const item2 = `{"object":"property_item","type":"rich_text","rich_text":{"plain_text":"World"}}`
 
-	callCount := 0
+	var callCount atomic.Int32
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/v1/pages/page-1/properties/prop-rt" {
 			http.Error(w, "not found", http.StatusNotFound)
 			return
 		}
 		w.Header().Set("Content-Type", "application/json")
-		callCount++
+		callCount.Add(1)
 		if r.URL.Query().Get("start_cursor") == "" {
 			_, _ = w.Write([]byte(`{"object":"list","type":"property_item","results":[` + item1 + `],"has_more":true,"next_cursor":"cursor1"}`))
 		} else {
@@ -474,8 +475,8 @@ func TestGetPageProperty_HandlesPagination(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if callCount != 2 {
-		t.Errorf("callCount = %d, want 2", callCount)
+	if callCount.Load() != 2 {
+		t.Errorf("callCount = %d, want 2", callCount.Load())
 	}
 
 	var obj map[string]any
@@ -523,7 +524,7 @@ func TestMovePage_MovesToNewParent(t *testing.T) {
 
 	var gotBody map[string]any
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/v1/pages/page-1/move" || r.Method != http.MethodPut {
+		if r.URL.Path != "/v1/pages/page-1/move" || r.Method != http.MethodPost {
 			http.Error(w, "not found", http.StatusNotFound)
 			return
 		}

@@ -107,6 +107,7 @@ func NewPageUpdateCmd() *cobra.Command {
 	cmd.Flags().StringVar(&propertiesFlag, "properties", "{}", "Properties as JSON object")
 	cmd.Flags().BoolVar(&archiveFlag, "archive", false, "Archive the page")
 	cmd.Flags().BoolVar(&unarchiveFlag, "unarchive", false, "Unarchive the page")
+	cmd.MarkFlagsMutuallyExclusive("archive", "unarchive")
 	return cmd
 }
 
@@ -214,7 +215,7 @@ func runPageMarkdown(ctx context.Context, client *api.Client, w io.Writer, pageI
 	if err != nil {
 		return mapAPIError(err)
 	}
-	_, err = fmt.Fprint(w, result.Markdown)
+	_, err = fmt.Fprintln(w, result.Markdown)
 	return err
 }
 

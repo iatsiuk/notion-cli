@@ -153,7 +153,7 @@ type movePageRequest struct {
 
 // MovePage moves a page to a new parent.
 func (c *Client) MovePage(ctx context.Context, pageID string, parent Parent) (*Page, error) {
-	raw, err := c.Put(ctx, "/v1/pages/"+url.PathEscape(pageID)+"/move", &movePageRequest{Parent: parent})
+	raw, err := c.Post(ctx, "/v1/pages/"+url.PathEscape(pageID)+"/move", &movePageRequest{Parent: parent})
 	if err != nil {
 		return nil, err
 	}
