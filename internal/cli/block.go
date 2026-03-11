@@ -189,10 +189,10 @@ func runBlockUpdate(ctx context.Context, client *api.Client, w io.Writer, format
 	}
 	if archive {
 		t := true
-		req.Archived = &t
+		req.InTrash = &t
 	} else if unarchive {
 		f := false
-		req.Archived = &f
+		req.InTrash = &f
 	}
 
 	block, err := client.UpdateBlock(ctx, blockID, req)

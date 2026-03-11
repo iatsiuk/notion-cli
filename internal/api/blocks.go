@@ -10,7 +10,7 @@ import (
 // UpdateBlockRequest is the body for updating a block.
 // TypeContent maps block type names to their content (e.g. "paragraph" -> {...}).
 type UpdateBlockRequest struct {
-	Archived    *bool          `json:"archived,omitempty"`
+	InTrash     *bool          `json:"in_trash,omitempty"`
 	TypeContent map[string]any `json:"-"`
 }
 
@@ -20,8 +20,8 @@ func (r *UpdateBlockRequest) MarshalJSON() ([]byte, error) {
 	for k, v := range r.TypeContent {
 		m[k] = v
 	}
-	if r.Archived != nil {
-		m["archived"] = *r.Archived
+	if r.InTrash != nil {
+		m["in_trash"] = *r.InTrash
 	}
 	return json.Marshal(m)
 }
@@ -32,7 +32,7 @@ type Block struct {
 	ID             string      `json:"id"`
 	Type           string      `json:"type"`
 	HasChildren    bool        `json:"has_children"`
-	Archived       bool        `json:"archived"`
+	InTrash        bool        `json:"in_trash"`
 	CreatedTime    string      `json:"created_time"`
 	LastEditedTime string      `json:"last_edited_time"`
 	CreatedBy      PartialUser `json:"created_by"`
@@ -71,6 +71,7 @@ type Block struct {
 	Equation         json.RawMessage `json:"equation,omitempty"`
 	Breadcrumb       json.RawMessage `json:"breadcrumb,omitempty"`
 	LinkToPage       json.RawMessage `json:"link_to_page,omitempty"`
+	MeetingNotes     json.RawMessage `json:"meeting_notes,omitempty"`
 	Unsupported      json.RawMessage `json:"unsupported,omitempty"`
 }
 
@@ -136,7 +137,7 @@ func (c *Client) AppendBlockChildren(ctx context.Context, blockID string, childr
 	return blocks, nil
 }
 
-// DeleteBlock deletes (archives) a block by ID and returns the archived block.
+// DeleteBlock moves a block to trash by ID and returns the updated block.
 func (c *Client) DeleteBlock(ctx context.Context, blockID string) (*Block, error) {
 	raw, err := c.Delete(ctx, "/v1/blocks/"+url.PathEscape(blockID))
 	if err != nil {

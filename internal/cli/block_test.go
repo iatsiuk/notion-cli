@@ -19,7 +19,7 @@ const testBlockJSON = `{
 	"id": "block-1",
 	"type": "paragraph",
 	"has_children": false,
-	"archived": false,
+	"in_trash": false,
 	"created_time": "2024-01-01T00:00:00.000Z",
 	"last_edited_time": "2024-01-02T00:00:00.000Z",
 	"created_by": {"object": "user", "id": "user-1"},
@@ -176,7 +176,7 @@ func TestRunBlockUpdate_Archive(t *testing.T) {
 		"id": "block-1",
 		"type": "paragraph",
 		"has_children": false,
-		"archived": true,
+		"in_trash": true,
 		"created_time": "2024-01-01T00:00:00.000Z",
 		"last_edited_time": "2024-01-02T00:00:00.000Z",
 		"created_by": {"object": "user", "id": "user-1"},
@@ -203,8 +203,8 @@ func TestRunBlockUpdate_Archive(t *testing.T) {
 	if err := json.Unmarshal([]byte(strings.TrimSpace(out)), &obj); err != nil {
 		t.Fatalf("output is not valid JSON: %v", err)
 	}
-	if obj["archived"] != true {
-		t.Errorf("archived = %v, want true", obj["archived"])
+	if obj["in_trash"] != true {
+		t.Errorf("archived = %v, want true", obj["in_trash"])
 	}
 }
 
@@ -216,7 +216,7 @@ func TestRunBlockUpdate_Unarchive(t *testing.T) {
 		"id": "block-1",
 		"type": "paragraph",
 		"has_children": false,
-		"archived": false,
+		"in_trash": false,
 		"created_time": "2024-01-01T00:00:00.000Z",
 		"last_edited_time": "2024-01-02T00:00:00.000Z",
 		"created_by": {"object": "user", "id": "user-1"},
@@ -244,7 +244,7 @@ func TestRunBlockUpdate_Unarchive(t *testing.T) {
 	if err := json.Unmarshal(gotBody, &bodyMap); err != nil {
 		t.Fatalf("request body is not valid JSON: %v", err)
 	}
-	if v, ok := bodyMap["archived"]; !ok || v != false {
+	if v, ok := bodyMap["in_trash"]; !ok || v != false {
 		t.Errorf("body archived = %v, want false", v)
 	}
 }
@@ -319,7 +319,7 @@ const testChildrenJSON = `{
 			"id": "child-1",
 			"type": "paragraph",
 			"has_children": false,
-			"archived": false,
+			"in_trash": false,
 			"created_time": "2024-01-01T00:00:00.000Z",
 			"last_edited_time": "2024-01-01T00:00:00.000Z",
 			"created_by": {"object": "user", "id": "user-1"},
@@ -405,7 +405,7 @@ const testAppendResponseJSON = `{
 			"id": "new-child-1",
 			"type": "paragraph",
 			"has_children": false,
-			"archived": false,
+			"in_trash": false,
 			"created_time": "2024-01-01T00:00:00.000Z",
 			"last_edited_time": "2024-01-01T00:00:00.000Z",
 			"created_by": {"object": "user", "id": "user-1"},
@@ -554,7 +554,7 @@ const testDeletedBlockJSON = `{
 	"id": "block-1",
 	"type": "paragraph",
 	"has_children": false,
-	"archived": true,
+	"in_trash": true,
 	"created_time": "2024-01-01T00:00:00.000Z",
 	"last_edited_time": "2024-01-02T00:00:00.000Z",
 	"created_by": {"object": "user", "id": "user-1"},
@@ -590,8 +590,8 @@ func TestRunBlockDelete_OutputsArchivedBlock(t *testing.T) {
 	if err := json.Unmarshal([]byte(strings.TrimSpace(out)), &obj); err != nil {
 		t.Fatalf("output is not valid JSON: %v", err)
 	}
-	if obj["archived"] != true {
-		t.Errorf("archived = %v, want true", obj["archived"])
+	if obj["in_trash"] != true {
+		t.Errorf("archived = %v, want true", obj["in_trash"])
 	}
 }
 

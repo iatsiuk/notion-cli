@@ -16,7 +16,7 @@ const paragraphBlockJSON = `{
 	"id": "block-1",
 	"type": "paragraph",
 	"has_children": false,
-	"archived": false,
+	"in_trash": false,
 	"created_time": "2024-01-01T00:00:00.000Z",
 	"last_edited_time": "2024-01-02T00:00:00.000Z",
 	"created_by": {"object": "user", "id": "user-1"},
@@ -63,8 +63,8 @@ func TestGetBlock_ReturnsParagraph(t *testing.T) {
 	if block.HasChildren {
 		t.Error("HasChildren = true, want false")
 	}
-	if block.Archived {
-		t.Error("Archived = true, want false")
+	if block.InTrash {
+		t.Error("InTrash = true, want false")
 	}
 	if block.Parent.Type != "page_id" {
 		t.Errorf("Parent.Type = %q, want %q", block.Parent.Type, "page_id")
@@ -85,7 +85,7 @@ func TestGetBlock_Deserialization_Heading(t *testing.T) {
 		"id": "block-2",
 		"type": "heading_1",
 		"has_children": false,
-		"archived": false,
+		"in_trash": false,
 		"created_time": "2024-01-01T00:00:00.000Z",
 		"last_edited_time": "2024-01-01T00:00:00.000Z",
 		"created_by": {"object": "user", "id": "user-1"},
@@ -119,7 +119,7 @@ func TestGetBlock_Deserialization_Code(t *testing.T) {
 		"id": "block-3",
 		"type": "code",
 		"has_children": false,
-		"archived": false,
+		"in_trash": false,
 		"created_time": "2024-01-01T00:00:00.000Z",
 		"last_edited_time": "2024-01-01T00:00:00.000Z",
 		"created_by": {"object": "user", "id": "user-1"},
@@ -153,7 +153,7 @@ func TestGetBlock_Deserialization_BulletedList(t *testing.T) {
 		"id": "block-4",
 		"type": "bulleted_list_item",
 		"has_children": false,
-		"archived": false,
+		"in_trash": false,
 		"created_time": "2024-01-01T00:00:00.000Z",
 		"last_edited_time": "2024-01-01T00:00:00.000Z",
 		"created_by": {"object": "user", "id": "user-1"},
@@ -256,7 +256,7 @@ func TestUpdateBlock_UpdatesContent(t *testing.T) {
 		"id": "block-1",
 		"type": "paragraph",
 		"has_children": false,
-		"archived": false,
+		"in_trash": false,
 		"created_time": "2024-01-01T00:00:00.000Z",
 		"last_edited_time": "2024-01-03T00:00:00.000Z",
 		"created_by": {"object": "user", "id": "user-1"},
@@ -325,7 +325,7 @@ func TestUpdateBlock_Archives(t *testing.T) {
 		"id": "block-1",
 		"type": "paragraph",
 		"has_children": false,
-		"archived": true,
+		"in_trash": true,
 		"created_time": "2024-01-01T00:00:00.000Z",
 		"last_edited_time": "2024-01-04T00:00:00.000Z",
 		"created_by": {"object": "user", "id": "user-1"},
@@ -341,24 +341,24 @@ func TestUpdateBlock_Archives(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	archived := true
-	req := &api.UpdateBlockRequest{Archived: &archived}
+	inTrash := true
+	req := &api.UpdateBlockRequest{InTrash: &inTrash}
 	client := api.NewClient("token", api.WithBaseURL(srv.URL))
 	block, err := client.UpdateBlock(t.Context(), "block-1", req)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if !block.Archived {
-		t.Error("Archived = false, want true")
+	if !block.InTrash {
+		t.Error("InTrash = false, want true")
 	}
 
 	var bodyMap map[string]any
 	if err := json.Unmarshal(gotBody, &bodyMap); err != nil {
 		t.Fatalf("body is not valid JSON: %v", err)
 	}
-	if v, ok := bodyMap["archived"]; !ok || v != true {
-		t.Errorf("body archived = %v, want true", v)
+	if v, ok := bodyMap["in_trash"]; !ok || v != true {
+		t.Errorf("body in_trash = %v, want true", v)
 	}
 }
 
@@ -398,7 +398,7 @@ func TestListBlockChildren_ReturnsChildren(t *testing.T) {
 				"id": "child-1",
 				"type": "paragraph",
 				"has_children": false,
-				"archived": false,
+				"in_trash": false,
 				"created_time": "2024-01-01T00:00:00.000Z",
 				"last_edited_time": "2024-01-01T00:00:00.000Z",
 				"created_by": {"object": "user", "id": "user-1"},
@@ -411,7 +411,7 @@ func TestListBlockChildren_ReturnsChildren(t *testing.T) {
 				"id": "child-2",
 				"type": "heading_1",
 				"has_children": false,
-				"archived": false,
+				"in_trash": false,
 				"created_time": "2024-01-01T00:00:00.000Z",
 				"last_edited_time": "2024-01-01T00:00:00.000Z",
 				"created_by": {"object": "user", "id": "user-1"},
@@ -487,13 +487,13 @@ func TestListBlockChildren_Paginated(t *testing.T) {
 
 	page1 := `{
 		"object": "list",
-		"results": [{"object":"block","id":"child-1","type":"paragraph","has_children":false,"archived":false,"created_time":"2024-01-01T00:00:00.000Z","last_edited_time":"2024-01-01T00:00:00.000Z","created_by":{"object":"user","id":"u1"},"last_edited_by":{"object":"user","id":"u1"},"parent":{"type":"block_id","block_id":"block-1"},"paragraph":{"rich_text":[]}}],
+		"results": [{"object":"block","id":"child-1","type":"paragraph","has_children":false,"in_trash":false,"created_time":"2024-01-01T00:00:00.000Z","last_edited_time":"2024-01-01T00:00:00.000Z","created_by":{"object":"user","id":"u1"},"last_edited_by":{"object":"user","id":"u1"},"parent":{"type":"block_id","block_id":"block-1"},"paragraph":{"rich_text":[]}}],
 		"has_more": true,
 		"next_cursor": "cursor-abc"
 	}`
 	page2 := `{
 		"object": "list",
-		"results": [{"object":"block","id":"child-2","type":"paragraph","has_children":false,"archived":false,"created_time":"2024-01-01T00:00:00.000Z","last_edited_time":"2024-01-01T00:00:00.000Z","created_by":{"object":"user","id":"u1"},"last_edited_by":{"object":"user","id":"u1"},"parent":{"type":"block_id","block_id":"block-1"},"paragraph":{"rich_text":[]}}],
+		"results": [{"object":"block","id":"child-2","type":"paragraph","has_children":false,"in_trash":false,"created_time":"2024-01-01T00:00:00.000Z","last_edited_time":"2024-01-01T00:00:00.000Z","created_by":{"object":"user","id":"u1"},"last_edited_by":{"object":"user","id":"u1"},"parent":{"type":"block_id","block_id":"block-1"},"paragraph":{"rich_text":[]}}],
 		"has_more": false,
 		"next_cursor": null
 	}`
@@ -559,7 +559,7 @@ func TestAppendBlockChildren_AppendsChildren(t *testing.T) {
 				"id": "new-child-1",
 				"type": "paragraph",
 				"has_children": false,
-				"archived": false,
+				"in_trash": false,
 				"created_time": "2024-01-01T00:00:00.000Z",
 				"last_edited_time": "2024-01-01T00:00:00.000Z",
 				"created_by": {"object": "user", "id": "user-1"},
@@ -654,7 +654,7 @@ func TestDeleteBlock_DeletesBlock(t *testing.T) {
 		"id": "block-1",
 		"type": "paragraph",
 		"has_children": false,
-		"archived": true,
+		"in_trash": true,
 		"created_time": "2024-01-01T00:00:00.000Z",
 		"last_edited_time": "2024-01-05T00:00:00.000Z",
 		"created_by": {"object": "user", "id": "user-1"},
@@ -686,8 +686,8 @@ func TestDeleteBlock_DeletesBlock(t *testing.T) {
 	if block.ID != "block-1" {
 		t.Errorf("ID = %q, want %q", block.ID, "block-1")
 	}
-	if !block.Archived {
-		t.Error("Archived = false, want true")
+	if !block.InTrash {
+		t.Error("InTrash = false, want true")
 	}
 }
 
