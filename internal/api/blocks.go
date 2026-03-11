@@ -67,6 +67,11 @@ type Block struct {
 	SyncedBlock      json.RawMessage `json:"synced_block,omitempty"`
 	Template         json.RawMessage `json:"template,omitempty"`
 	LinkPreview      json.RawMessage `json:"link_preview,omitempty"`
+	Audio            json.RawMessage `json:"audio,omitempty"`
+	Equation         json.RawMessage `json:"equation,omitempty"`
+	Breadcrumb       json.RawMessage `json:"breadcrumb,omitempty"`
+	LinkToPage       json.RawMessage `json:"link_to_page,omitempty"`
+	Unsupported      json.RawMessage `json:"unsupported,omitempty"`
 }
 
 // UpdateBlock updates a block by ID.

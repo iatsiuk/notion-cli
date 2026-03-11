@@ -433,7 +433,7 @@ func TestRunBlockAppend_OutputsCreatedBlocks(t *testing.T) {
 	childrenJSON := `[{"object":"block","type":"paragraph","paragraph":{"rich_text":[]}}]`
 	client := api.NewClient("token", api.WithBaseURL(srv.URL), api.WithHTTPClient(srv.Client()))
 	var buf bytes.Buffer
-	err := runBlockAppend(context.Background(), client, &buf, "json", "block-1", childrenJSON)
+	err := runBlockAppend(context.Background(), client, &buf, strings.NewReader(""), "json", "block-1", childrenJSON, true)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -469,7 +469,7 @@ func TestRunBlockAppend_InvalidJSON(t *testing.T) {
 
 	client := api.NewClient("token", api.WithBaseURL(srv.URL), api.WithHTTPClient(srv.Client()))
 	var buf bytes.Buffer
-	err := runBlockAppend(context.Background(), client, &buf, "json", "block-1", `not-json`)
+	err := runBlockAppend(context.Background(), client, &buf, strings.NewReader(""), "json", "block-1", `not-json`, true)
 	if err == nil {
 		t.Fatal("expected error for invalid JSON, got nil")
 	}
@@ -479,9 +479,48 @@ func TestRunBlockAppend_EmptyChildren(t *testing.T) {
 	t.Parallel()
 	client := api.NewClient("token")
 	var buf bytes.Buffer
-	err := runBlockAppend(context.Background(), client, &buf, "json", "block-1", `[]`)
+	err := runBlockAppend(context.Background(), client, &buf, strings.NewReader(""), "json", "block-1", `[]`, true)
 	if err == nil {
 		t.Fatal("expected error for empty children, got nil")
+	}
+}
+
+func TestRunBlockAppend_ReadsFromStdin(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v1/blocks/block-1/children" || r.Method != http.MethodPatch {
+			http.Error(w, "bad request", http.StatusBadRequest)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(testAppendResponseJSON))
+	}))
+	defer srv.Close()
+
+	childrenJSON := `[{"object":"block","type":"paragraph","paragraph":{"rich_text":[]}}]`
+	client := api.NewClient("token", api.WithBaseURL(srv.URL), api.WithHTTPClient(srv.Client()))
+	var buf bytes.Buffer
+	err := runBlockAppend(context.Background(), client, &buf, strings.NewReader(childrenJSON), "json", "block-1", "[]", false)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	var arr []any
+	if err := json.Unmarshal([]byte(strings.TrimSpace(buf.String())), &arr); err != nil {
+		t.Fatalf("output is not valid JSON array: %v", err)
+	}
+	if len(arr) != 1 {
+		t.Fatalf("len = %d, want 1", len(arr))
+	}
+}
+
+func TestRunBlockAppend_EmptyStdin(t *testing.T) {
+	t.Parallel()
+	client := api.NewClient("token")
+	var buf bytes.Buffer
+	err := runBlockAppend(context.Background(), client, &buf, strings.NewReader(""), "json", "block-1", "[]", false)
+	if err == nil {
+		t.Fatal("expected error for empty stdin, got nil")
 	}
 }
 
@@ -496,7 +535,7 @@ func TestRunBlockAppend_NotFound(t *testing.T) {
 	childrenJSON := `[{"object":"block","type":"paragraph","paragraph":{"rich_text":[]}}]`
 	client := api.NewClient("token", api.WithBaseURL(srv.URL), api.WithHTTPClient(srv.Client()))
 	var buf bytes.Buffer
-	err := runBlockAppend(context.Background(), client, &buf, "json", "bad-id", childrenJSON)
+	err := runBlockAppend(context.Background(), client, &buf, strings.NewReader(""), "json", "bad-id", childrenJSON, true)
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/spf13/cobra"
 
@@ -108,20 +109,31 @@ func NewBlockAppendCmd() *cobra.Command {
 		Short: "Append child blocks to a Notion block",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return runBlockAppend(cmd.Context(), newClientFromCfg(), cmd.OutOrStdout(), cfg.Format, args[0], childrenFlag)
+			return runBlockAppend(cmd.Context(), newClientFromCfg(), cmd.OutOrStdout(), cmd.InOrStdin(), cfg.Format, args[0], childrenFlag, cmd.Flags().Changed("children"))
 		},
 	}
 	cmd.Flags().StringVar(&childrenFlag, "children", "[]", "Child blocks as JSON array")
 	return cmd
 }
 
-func runBlockAppend(ctx context.Context, client *api.Client, w io.Writer, format, blockID, childrenJSON string) error {
+func runBlockAppend(ctx context.Context, client *api.Client, w io.Writer, stdin io.Reader, format, blockID, childrenJSON string, childrenFlagSet bool) error {
+	if !childrenFlagSet {
+		data, err := io.ReadAll(stdin)
+		if err != nil {
+			return fmt.Errorf("reading stdin: %w", err)
+		}
+		childrenJSON = strings.TrimSpace(string(data))
+		if childrenJSON == "" {
+			return fmt.Errorf("provide --children flag or pipe JSON array via stdin")
+		}
+	}
+
 	var children []map[string]any
 	if err := json.Unmarshal([]byte(childrenJSON), &children); err != nil {
 		return fmt.Errorf("--children: %w", err)
 	}
 	if len(children) == 0 {
-		return fmt.Errorf("--children must be a non-empty JSON array")
+		return fmt.Errorf("children must be a non-empty JSON array")
 	}
 
 	blocks, err := client.AppendBlockChildren(ctx, blockID, children)
