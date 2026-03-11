@@ -101,7 +101,7 @@ func TestSearch_FilterDatabases(t *testing.T) {
 			http.Error(w, "bad body", http.StatusBadRequest)
 			return
 		}
-		if payload.Filter.Value != "database" || payload.Filter.Property != "object" {
+		if payload.Filter.Value != "data_source" || payload.Filter.Property != "object" {
 			http.Error(w, "bad filter", http.StatusBadRequest)
 			return
 		}
@@ -112,7 +112,7 @@ func TestSearch_FilterDatabases(t *testing.T) {
 
 	client := api.NewClient("token", api.WithBaseURL(srv.URL))
 	req := &api.SearchRequest{
-		Filter: &api.SearchFilter{Value: "database", Property: "object"},
+		Filter: &api.SearchFilter{Value: "data_source", Property: "object"},
 	}
 	results, err := client.Search(t.Context(), req)
 	if err != nil {
