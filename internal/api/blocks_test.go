@@ -385,3 +385,164 @@ func TestUpdateBlock_NotFound(t *testing.T) {
 		t.Errorf("Status = %d, want 404", apiErr.Status)
 	}
 }
+
+func TestListBlockChildren_ReturnsChildren(t *testing.T) {
+	t.Parallel()
+
+	const childrenJSON = `{
+		"object": "list",
+		"results": [
+			{
+				"object": "block",
+				"id": "child-1",
+				"type": "paragraph",
+				"has_children": false,
+				"archived": false,
+				"created_time": "2024-01-01T00:00:00.000Z",
+				"last_edited_time": "2024-01-01T00:00:00.000Z",
+				"created_by": {"object": "user", "id": "user-1"},
+				"last_edited_by": {"object": "user", "id": "user-1"},
+				"parent": {"type": "block_id", "block_id": "block-1"},
+				"paragraph": {"rich_text": [], "color": "default"}
+			},
+			{
+				"object": "block",
+				"id": "child-2",
+				"type": "heading_1",
+				"has_children": false,
+				"archived": false,
+				"created_time": "2024-01-01T00:00:00.000Z",
+				"last_edited_time": "2024-01-01T00:00:00.000Z",
+				"created_by": {"object": "user", "id": "user-1"},
+				"last_edited_by": {"object": "user", "id": "user-1"},
+				"parent": {"type": "block_id", "block_id": "block-1"},
+				"heading_1": {"rich_text": [], "color": "default", "is_toggleable": false}
+			}
+		],
+		"has_more": false,
+		"next_cursor": null
+	}`
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v1/blocks/block-1/children" {
+			http.Error(w, "not found", http.StatusNotFound)
+			return
+		}
+		if r.Method != http.MethodGet {
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(childrenJSON))
+	}))
+	defer srv.Close()
+
+	client := api.NewClient("token", api.WithBaseURL(srv.URL))
+	blocks, err := client.ListBlockChildren(t.Context(), "block-1")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if len(blocks) != 2 {
+		t.Fatalf("len = %d, want 2", len(blocks))
+	}
+	if blocks[0].ID != "child-1" {
+		t.Errorf("blocks[0].ID = %q, want %q", blocks[0].ID, "child-1")
+	}
+	if blocks[1].ID != "child-2" {
+		t.Errorf("blocks[1].ID = %q, want %q", blocks[1].ID, "child-2")
+	}
+}
+
+func TestListBlockChildren_EmptyChildren(t *testing.T) {
+	t.Parallel()
+
+	const emptyJSON = `{
+		"object": "list",
+		"results": [],
+		"has_more": false,
+		"next_cursor": null
+	}`
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(emptyJSON))
+	}))
+	defer srv.Close()
+
+	client := api.NewClient("token", api.WithBaseURL(srv.URL))
+	blocks, err := client.ListBlockChildren(t.Context(), "block-1")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if len(blocks) != 0 {
+		t.Errorf("len = %d, want 0", len(blocks))
+	}
+}
+
+func TestListBlockChildren_Paginated(t *testing.T) {
+	t.Parallel()
+
+	page1 := `{
+		"object": "list",
+		"results": [{"object":"block","id":"child-1","type":"paragraph","has_children":false,"archived":false,"created_time":"2024-01-01T00:00:00.000Z","last_edited_time":"2024-01-01T00:00:00.000Z","created_by":{"object":"user","id":"u1"},"last_edited_by":{"object":"user","id":"u1"},"parent":{"type":"block_id","block_id":"block-1"},"paragraph":{"rich_text":[]}}],
+		"has_more": true,
+		"next_cursor": "cursor-abc"
+	}`
+	page2 := `{
+		"object": "list",
+		"results": [{"object":"block","id":"child-2","type":"paragraph","has_children":false,"archived":false,"created_time":"2024-01-01T00:00:00.000Z","last_edited_time":"2024-01-01T00:00:00.000Z","created_by":{"object":"user","id":"u1"},"last_edited_by":{"object":"user","id":"u1"},"parent":{"type":"block_id","block_id":"block-1"},"paragraph":{"rich_text":[]}}],
+		"has_more": false,
+		"next_cursor": null
+	}`
+
+	var requestCount int
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requestCount++
+		w.Header().Set("Content-Type", "application/json")
+		if r.URL.Query().Get("start_cursor") == "cursor-abc" {
+			_, _ = w.Write([]byte(page2))
+		} else {
+			_, _ = w.Write([]byte(page1))
+		}
+	}))
+	defer srv.Close()
+
+	client := api.NewClient("token", api.WithBaseURL(srv.URL))
+	blocks, err := client.ListBlockChildren(t.Context(), "block-1")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if len(blocks) != 2 {
+		t.Fatalf("len = %d, want 2", len(blocks))
+	}
+	if requestCount != 2 {
+		t.Errorf("requestCount = %d, want 2", requestCount)
+	}
+}
+
+func TestListBlockChildren_NotFound(t *testing.T) {
+	t.Parallel()
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+		_, _ = w.Write([]byte(`{"status":404,"code":"object_not_found","message":"block not found"}`))
+	}))
+	defer srv.Close()
+
+	client := api.NewClient("token", api.WithBaseURL(srv.URL))
+	_, err := client.ListBlockChildren(t.Context(), "nonexistent")
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+
+	var apiErr *api.APIError
+	if !api.AsAPIError(err, &apiErr) {
+		t.Fatalf("expected *APIError, got %T: %v", err, err)
+	}
+	if apiErr.Status != 404 {
+		t.Errorf("Status = %d, want 404", apiErr.Status)
+	}
+}

@@ -23,6 +23,7 @@ func NewBlockCmd() *cobra.Command {
 	}
 	cmd.AddCommand(NewBlockGetCmd())
 	cmd.AddCommand(NewBlockUpdateCmd())
+	cmd.AddCommand(NewBlockChildrenCmd())
 	return cmd
 }
 
@@ -69,6 +70,31 @@ func NewBlockUpdateCmd() *cobra.Command {
 	cmd.Flags().BoolVar(&unarchiveFlag, "unarchive", false, "Unarchive the block")
 	cmd.MarkFlagsMutuallyExclusive("archive", "unarchive")
 	return cmd
+}
+
+// NewBlockChildrenCmd returns the "block children" cobra subcommand.
+func NewBlockChildrenCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "children <block_id>",
+		Short: "List child blocks of a Notion block",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return runBlockChildren(cmd.Context(), newClientFromCfg(), cmd.OutOrStdout(), cfg.Format, args[0])
+		},
+	}
+}
+
+func runBlockChildren(ctx context.Context, client *api.Client, w io.Writer, format, blockID string) error {
+	blocks, err := client.ListBlockChildren(ctx, blockID)
+	if err != nil {
+		return mapAPIError(err)
+	}
+
+	f, err := output.New(format, isTerminal(w))
+	if err != nil {
+		return fmt.Errorf("output format: %w", err)
+	}
+	return f.Format(w, blocks)
 }
 
 func runBlockUpdate(ctx context.Context, client *api.Client, w io.Writer, format, blockID, dataJSON string, archive, unarchive bool) error {

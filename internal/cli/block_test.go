@@ -237,3 +237,83 @@ func TestRunBlockUpdate_NotFound(t *testing.T) {
 		t.Errorf("expected exit code %d, got %d", ExitAPI, cliErr.Code)
 	}
 }
+
+const testChildrenJSON = `{
+	"object": "list",
+	"results": [
+		{
+			"object": "block",
+			"id": "child-1",
+			"type": "paragraph",
+			"has_children": false,
+			"archived": false,
+			"created_time": "2024-01-01T00:00:00.000Z",
+			"last_edited_time": "2024-01-01T00:00:00.000Z",
+			"created_by": {"object": "user", "id": "user-1"},
+			"last_edited_by": {"object": "user", "id": "user-1"},
+			"parent": {"type": "block_id", "block_id": "block-1"},
+			"paragraph": {"rich_text": [], "color": "default"}
+		}
+	],
+	"has_more": false,
+	"next_cursor": null
+}`
+
+func TestRunBlockChildren_OutputsChildren(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v1/blocks/block-1/children" {
+			http.Error(w, "not found", http.StatusNotFound)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(testChildrenJSON))
+	}))
+	defer srv.Close()
+
+	client := api.NewClient("token", api.WithBaseURL(srv.URL), api.WithHTTPClient(srv.Client()))
+	var buf bytes.Buffer
+	err := runBlockChildren(context.Background(), client, &buf, "json", "block-1")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	out := buf.String()
+	if !strings.Contains(out, "child-1") {
+		t.Errorf("output missing child block ID, got: %s", out)
+	}
+}
+
+func TestRunBlockChildren_MissingArgument(t *testing.T) {
+	t.Parallel()
+	cmd := NewBlockChildrenCmd()
+	cmd.SetArgs([]string{})
+	err := cmd.Execute()
+	if err == nil {
+		t.Fatal("expected error for missing argument, got nil")
+	}
+}
+
+func TestRunBlockChildren_NotFound(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+		_, _ = w.Write([]byte(`{"status":404,"code":"object_not_found","message":"Could not find block with ID: bad-id."}`))
+	}))
+	defer srv.Close()
+
+	client := api.NewClient("token", api.WithBaseURL(srv.URL), api.WithHTTPClient(srv.Client()))
+	var buf bytes.Buffer
+	err := runBlockChildren(context.Background(), client, &buf, "json", "bad-id")
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+
+	var cliErr *CLIError
+	if !errors.As(err, &cliErr) {
+		t.Fatalf("expected CLIError, got %T: %v", err, err)
+	}
+	if cliErr.Code != ExitAPI {
+		t.Errorf("expected exit code %d, got %d", ExitAPI, cliErr.Code)
+	}
+}

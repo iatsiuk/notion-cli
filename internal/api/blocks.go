@@ -82,6 +82,41 @@ func (c *Client) UpdateBlock(ctx context.Context, blockID string, req *UpdateBlo
 	return &b, nil
 }
 
+// ListBlockChildren returns all child blocks of a block (auto-paginated).
+func (c *Client) ListBlockChildren(ctx context.Context, blockID string) ([]Block, error) {
+	path := "/v1/blocks/" + url.PathEscape(blockID) + "/children"
+	all := make([]Block, 0)
+	var cursor string
+	for {
+		params := url.Values{}
+		if cursor != "" {
+			params.Set("start_cursor", cursor)
+		}
+		raw, err := c.Get(ctx, path, params)
+		if err != nil {
+			return nil, err
+		}
+		var resp listResponse
+		if err := json.Unmarshal(raw, &resp); err != nil {
+			return nil, fmt.Errorf("decode children response: %w", err)
+		}
+		for _, r := range resp.Results {
+			var b Block
+			if err := json.Unmarshal(r, &b); err != nil {
+				return nil, fmt.Errorf("decode block: %w", err)
+			}
+			all = append(all, b)
+		}
+		if !resp.HasMore {
+			return all, nil
+		}
+		if resp.NextCursor == nil {
+			return nil, fmt.Errorf("pagination: has_more is true but next_cursor is nil")
+		}
+		cursor = *resp.NextCursor
+	}
+}
+
 // GetBlock retrieves a block by ID.
 func (c *Client) GetBlock(ctx context.Context, blockID string) (*Block, error) {
 	raw, err := c.Get(ctx, "/v1/blocks/"+url.PathEscape(blockID), nil)
