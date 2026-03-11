@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/url"
 )
 
 // FileUploadCreatedBy holds the creator info for a file upload.
@@ -43,6 +44,32 @@ type CreateFileUploadParams struct {
 	ContentType   string `json:"content_type,omitempty"`
 	NumberOfParts int    `json:"number_of_parts,omitempty"`
 	ExternalURL   string `json:"external_url,omitempty"`
+}
+
+// GetFileUpload retrieves a file upload by ID (GET /v1/file_uploads/{id}).
+func (c *Client) GetFileUpload(ctx context.Context, fileUploadID string) (*FileUpload, error) {
+	raw, err := c.Get(ctx, "/v1/file_uploads/"+url.PathEscape(fileUploadID), nil)
+	if err != nil {
+		return nil, err
+	}
+	var fu FileUpload
+	if err := json.Unmarshal(raw, &fu); err != nil {
+		return nil, fmt.Errorf("decode file upload: %w", err)
+	}
+	return &fu, nil
+}
+
+// DeleteFileUpload deletes a file upload by ID (DELETE /v1/file_uploads/{id}).
+func (c *Client) DeleteFileUpload(ctx context.Context, fileUploadID string) (*FileUpload, error) {
+	raw, err := c.Delete(ctx, "/v1/file_uploads/"+url.PathEscape(fileUploadID))
+	if err != nil {
+		return nil, err
+	}
+	var fu FileUpload
+	if err := json.Unmarshal(raw, &fu); err != nil {
+		return nil, fmt.Errorf("decode file upload: %w", err)
+	}
+	return &fu, nil
 }
 
 // CreateFileUpload initiates a new file upload (POST /v1/file_uploads).

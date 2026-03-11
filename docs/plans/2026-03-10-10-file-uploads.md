@@ -34,12 +34,12 @@
 - [x] run tests - must pass before next task
 
 ### Task 2: Get and delete file upload API methods
-- [ ] write tests for GetFileUpload and DeleteFileUpload:
+- [x] write tests for GetFileUpload and DeleteFileUpload:
   - get returns upload status
   - delete removes upload
   - error handling
-- [ ] implement GetFileUpload (GET /v1/file_uploads/{id}) and DeleteFileUpload (DELETE /v1/file_uploads/{id})
-- [ ] run tests - must pass before next task
+- [x] implement GetFileUpload (GET /v1/file_uploads/{id}) and DeleteFileUpload (DELETE /v1/file_uploads/{id})
+- [x] run tests - must pass before next task
 
 ### Task 3: Send file content API method
 - [ ] write tests for SendFileContent:
