@@ -275,3 +275,107 @@ func TestRunCommentList_APIError(t *testing.T) {
 		t.Errorf("expected exit code %d, got %d", ExitAuth, cliErr.Code)
 	}
 }
+
+func TestRunCommentGet_OutputsComment(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v1/comments/comment-1" || r.Method != http.MethodGet {
+			http.Error(w, "not found", http.StatusNotFound)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(testCommentJSON))
+	}))
+	defer srv.Close()
+
+	client := api.NewClient("token", api.WithBaseURL(srv.URL), api.WithHTTPClient(srv.Client()))
+	var buf bytes.Buffer
+	err := runCommentGet(context.Background(), client, &buf, "json", "comment-1")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	var obj map[string]any
+	if err := json.Unmarshal([]byte(strings.TrimSpace(buf.String())), &obj); err != nil {
+		t.Fatalf("output is not valid JSON: %v", err)
+	}
+	if obj["id"] != "comment-1" {
+		t.Errorf("id = %v, want %q", obj["id"], "comment-1")
+	}
+}
+
+func TestRunCommentGet_APIError(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+		_, _ = w.Write([]byte(`{"status":404,"code":"object_not_found","message":"Could not find comment."}`))
+	}))
+	defer srv.Close()
+
+	client := api.NewClient("token", api.WithBaseURL(srv.URL), api.WithHTTPClient(srv.Client()))
+	var buf bytes.Buffer
+	err := runCommentGet(context.Background(), client, &buf, "json", "nonexistent")
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+
+	var cliErr *CLIError
+	if !errors.As(err, &cliErr) {
+		t.Fatalf("expected CLIError, got %T: %v", err, err)
+	}
+	if cliErr.Code != ExitAPI {
+		t.Errorf("expected exit code %d, got %d", ExitAPI, cliErr.Code)
+	}
+}
+
+func TestRunCommentDelete_OutputsDeletedComment(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v1/comments/comment-1" || r.Method != http.MethodDelete {
+			http.Error(w, "not found", http.StatusNotFound)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(testCommentJSON))
+	}))
+	defer srv.Close()
+
+	client := api.NewClient("token", api.WithBaseURL(srv.URL), api.WithHTTPClient(srv.Client()))
+	var buf bytes.Buffer
+	err := runCommentDelete(context.Background(), client, &buf, "json", "comment-1")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	var obj map[string]any
+	if err := json.Unmarshal([]byte(strings.TrimSpace(buf.String())), &obj); err != nil {
+		t.Fatalf("output is not valid JSON: %v", err)
+	}
+	if obj["id"] != "comment-1" {
+		t.Errorf("id = %v, want %q", obj["id"], "comment-1")
+	}
+}
+
+func TestRunCommentDelete_APIError(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusForbidden)
+		_, _ = w.Write([]byte(`{"status":403,"code":"restricted_resource","message":"Insufficient permissions."}`))
+	}))
+	defer srv.Close()
+
+	client := api.NewClient("token", api.WithBaseURL(srv.URL), api.WithHTTPClient(srv.Client()))
+	var buf bytes.Buffer
+	err := runCommentDelete(context.Background(), client, &buf, "json", "comment-1")
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+
+	var cliErr *CLIError
+	if !errors.As(err, &cliErr) {
+		t.Fatalf("expected CLIError, got %T: %v", err, err)
+	}
+	if cliErr.Code != ExitAuth {
+		t.Errorf("expected exit code %d, got %d", ExitAuth, cliErr.Code)
+	}
+}

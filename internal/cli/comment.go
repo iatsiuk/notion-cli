@@ -22,6 +22,8 @@ func NewCommentCmd() *cobra.Command {
 	}
 	cmd.AddCommand(NewCommentListCmd())
 	cmd.AddCommand(NewCommentCreateCmd())
+	cmd.AddCommand(NewCommentGetCmd())
+	cmd.AddCommand(NewCommentDeleteCmd())
 	return cmd
 }
 
@@ -77,6 +79,56 @@ func runCommentCreate(ctx context.Context, client *api.Client, w io.Writer, form
 	}
 
 	cmt, err := client.CreateComment(ctx, req)
+	if err != nil {
+		return mapAPIError(err)
+	}
+
+	f, err := output.New(format, isTerminal(w))
+	if err != nil {
+		return fmt.Errorf("output format: %w", err)
+	}
+	return f.Format(w, cmt)
+}
+
+// NewCommentGetCmd returns the "comment get" cobra subcommand.
+func NewCommentGetCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "get <comment_id>",
+		Short: "Get a Notion comment by ID",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return runCommentGet(cmd.Context(), newClientFromCfg(), cmd.OutOrStdout(), cfg.Format, args[0])
+		},
+	}
+}
+
+// NewCommentDeleteCmd returns the "comment delete" cobra subcommand.
+func NewCommentDeleteCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "delete <comment_id>",
+		Short: "Delete a Notion comment by ID",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return runCommentDelete(cmd.Context(), newClientFromCfg(), cmd.OutOrStdout(), cfg.Format, args[0])
+		},
+	}
+}
+
+func runCommentGet(ctx context.Context, client *api.Client, w io.Writer, format, commentID string) error {
+	cmt, err := client.GetComment(ctx, commentID)
+	if err != nil {
+		return mapAPIError(err)
+	}
+
+	f, err := output.New(format, isTerminal(w))
+	if err != nil {
+		return fmt.Errorf("output format: %w", err)
+	}
+	return f.Format(w, cmt)
+}
+
+func runCommentDelete(ctx context.Context, client *api.Client, w io.Writer, format, commentID string) error {
+	cmt, err := client.DeleteComment(ctx, commentID)
 	if err != nil {
 		return mapAPIError(err)
 	}

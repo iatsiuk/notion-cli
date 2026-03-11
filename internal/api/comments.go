@@ -7,6 +7,32 @@ import (
 	"net/url"
 )
 
+// GetComment retrieves a comment by ID.
+func (c *Client) GetComment(ctx context.Context, commentID string) (*Comment, error) {
+	raw, err := c.Get(ctx, "/v1/comments/"+url.PathEscape(commentID), nil)
+	if err != nil {
+		return nil, err
+	}
+	var cmt Comment
+	if err := json.Unmarshal(raw, &cmt); err != nil {
+		return nil, fmt.Errorf("decode comment: %w", err)
+	}
+	return &cmt, nil
+}
+
+// DeleteComment deletes a comment by ID and returns the deleted comment.
+func (c *Client) DeleteComment(ctx context.Context, commentID string) (*Comment, error) {
+	raw, err := c.Delete(ctx, "/v1/comments/"+url.PathEscape(commentID))
+	if err != nil {
+		return nil, err
+	}
+	var cmt Comment
+	if err := json.Unmarshal(raw, &cmt); err != nil {
+		return nil, fmt.Errorf("decode comment: %w", err)
+	}
+	return &cmt, nil
+}
+
 // RichTextItem is a single element of rich_text array.
 type RichTextItem struct {
 	Type      string          `json:"type"`
