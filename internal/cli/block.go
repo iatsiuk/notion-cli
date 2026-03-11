@@ -120,6 +120,9 @@ func runBlockAppend(ctx context.Context, client *api.Client, w io.Writer, format
 	if err := json.Unmarshal([]byte(childrenJSON), &children); err != nil {
 		return fmt.Errorf("--children: %w", err)
 	}
+	if len(children) == 0 {
+		return fmt.Errorf("--children must be a non-empty JSON array")
+	}
 
 	blocks, err := client.AppendBlockChildren(ctx, blockID, children)
 	if err != nil {

@@ -475,6 +475,16 @@ func TestRunBlockAppend_InvalidJSON(t *testing.T) {
 	}
 }
 
+func TestRunBlockAppend_EmptyChildren(t *testing.T) {
+	t.Parallel()
+	client := api.NewClient("token")
+	var buf bytes.Buffer
+	err := runBlockAppend(context.Background(), client, &buf, "json", "block-1", `[]`)
+	if err == nil {
+		t.Fatal("expected error for empty children, got nil")
+	}
+}
+
 func TestRunBlockAppend_NotFound(t *testing.T) {
 	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -483,9 +493,10 @@ func TestRunBlockAppend_NotFound(t *testing.T) {
 	}))
 	defer srv.Close()
 
+	childrenJSON := `[{"object":"block","type":"paragraph","paragraph":{"rich_text":[]}}]`
 	client := api.NewClient("token", api.WithBaseURL(srv.URL), api.WithHTTPClient(srv.Client()))
 	var buf bytes.Buffer
-	err := runBlockAppend(context.Background(), client, &buf, "json", "bad-id", `[]`)
+	err := runBlockAppend(context.Background(), client, &buf, "json", "bad-id", childrenJSON)
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}
