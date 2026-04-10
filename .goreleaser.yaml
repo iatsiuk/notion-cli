@@ -30,6 +30,17 @@ homebrew_casks:
       token: "{{ .Env.HOMEBREW_TAP_TOKEN }}"
     homepage: "https://github.com/iatsiuk/notion-cli"
     description: "CLI tool for Notion - query, manage, and interact with Notion workspaces"
+    hooks:
+      post:
+        install: |
+          system_command "/bin/sh", args: ["-c", "xattr -d com.apple.quarantine '#{staged_path}/notion-cli' 2>/dev/null; true"]
+    caveats: |
+      Quarantine attribute (com.apple.quarantine) is automatically removed
+      from the notion-cli binary during installation to prevent Gatekeeper warnings.
+      See: https://github.com/Homebrew/brew/issues/20755
+
+      To uninstall:
+        brew uninstall --cask iatsiuk/tap/notion-cli
 
 changelog:
   sort: asc
