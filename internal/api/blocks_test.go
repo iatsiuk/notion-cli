@@ -594,7 +594,7 @@ func TestAppendBlockChildren_AppendsChildren(t *testing.T) {
 	}
 
 	client := api.NewClient("token", api.WithBaseURL(srv.URL))
-	blocks, err := client.AppendBlockChildren(t.Context(), "block-1", children)
+	blocks, err := client.AppendBlockChildren(t.Context(), "block-1", children, "")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -619,6 +619,63 @@ func TestAppendBlockChildren_AppendsChildren(t *testing.T) {
 	if _, ok := bodyMap["children"]; !ok {
 		t.Error("body missing 'children' key")
 	}
+	if _, ok := bodyMap["after"]; ok {
+		t.Error("body has 'after' key, want absent when after is empty")
+	}
+}
+
+func TestAppendBlockChildren_AfterField(t *testing.T) {
+	t.Parallel()
+
+	const responseJSON = `{
+		"object": "list",
+		"results": [],
+		"has_more": false,
+		"next_cursor": null
+	}`
+
+	tests := []struct {
+		name      string
+		after     string
+		wantKey   bool
+		wantValue string
+	}{
+		{name: "empty after omits key", after: "", wantKey: false},
+		{name: "non-empty after sets key", after: "block-xyz", wantKey: true, wantValue: "block-xyz"},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			var gotBody []byte
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				gotBody, _ = io.ReadAll(r.Body)
+				w.Header().Set("Content-Type", "application/json")
+				_, _ = w.Write([]byte(responseJSON))
+			}))
+			defer srv.Close()
+
+			children := []map[string]any{{"object": "block", "type": "paragraph"}}
+			client := api.NewClient("token", api.WithBaseURL(srv.URL))
+			_, err := client.AppendBlockChildren(t.Context(), "block-1", children, tc.after)
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+
+			var bodyMap map[string]any
+			if err := json.Unmarshal(gotBody, &bodyMap); err != nil {
+				t.Fatalf("body is not valid JSON: %v", err)
+			}
+			val, ok := bodyMap["after"]
+			if ok != tc.wantKey {
+				t.Errorf("body 'after' present = %v, want %v", ok, tc.wantKey)
+			}
+			if tc.wantKey && val != tc.wantValue {
+				t.Errorf("body 'after' = %v, want %q", val, tc.wantValue)
+			}
+		})
+	}
 }
 
 func TestAppendBlockChildren_NotFound(t *testing.T) {
@@ -632,7 +689,7 @@ func TestAppendBlockChildren_NotFound(t *testing.T) {
 
 	client := api.NewClient("token", api.WithBaseURL(srv.URL))
 	children := []map[string]any{{"type": "paragraph"}}
-	_, err := client.AppendBlockChildren(t.Context(), "nonexistent", children)
+	_, err := client.AppendBlockChildren(t.Context(), "nonexistent", children, "")
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}

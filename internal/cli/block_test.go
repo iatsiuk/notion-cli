@@ -434,7 +434,7 @@ func TestRunBlockAppend_OutputsCreatedBlocks(t *testing.T) {
 	childrenJSON := `[{"object":"block","type":"paragraph","paragraph":{"rich_text":[]}}]`
 	client := api.NewClient("token", api.WithBaseURL(srv.URL), api.WithHTTPClient(srv.Client()))
 	var buf bytes.Buffer
-	err := runBlockAppend(context.Background(), client, &buf, strings.NewReader(""), "json", "block-1", childrenJSON, true)
+	err := runBlockAppend(context.Background(), client, &buf, strings.NewReader(""), "json", "block-1", childrenJSON, true, "", false)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -470,7 +470,7 @@ func TestRunBlockAppend_InvalidJSON(t *testing.T) {
 
 	client := api.NewClient("token", api.WithBaseURL(srv.URL), api.WithHTTPClient(srv.Client()))
 	var buf bytes.Buffer
-	err := runBlockAppend(context.Background(), client, &buf, strings.NewReader(""), "json", "block-1", `not-json`, true)
+	err := runBlockAppend(context.Background(), client, &buf, strings.NewReader(""), "json", "block-1", `not-json`, true, "", false)
 	if err == nil {
 		t.Fatal("expected error for invalid JSON, got nil")
 	}
@@ -480,7 +480,7 @@ func TestRunBlockAppend_EmptyChildren(t *testing.T) {
 	t.Parallel()
 	client := api.NewClient("token")
 	var buf bytes.Buffer
-	err := runBlockAppend(context.Background(), client, &buf, strings.NewReader(""), "json", "block-1", `[]`, true)
+	err := runBlockAppend(context.Background(), client, &buf, strings.NewReader(""), "json", "block-1", `[]`, true, "", false)
 	if err == nil {
 		t.Fatal("expected error for empty children, got nil")
 	}
@@ -501,7 +501,7 @@ func TestRunBlockAppend_ReadsFromStdin(t *testing.T) {
 	childrenJSON := `[{"object":"block","type":"paragraph","paragraph":{"rich_text":[]}}]`
 	client := api.NewClient("token", api.WithBaseURL(srv.URL), api.WithHTTPClient(srv.Client()))
 	var buf bytes.Buffer
-	err := runBlockAppend(context.Background(), client, &buf, strings.NewReader(childrenJSON), "json", "block-1", "[]", false)
+	err := runBlockAppend(context.Background(), client, &buf, strings.NewReader(childrenJSON), "json", "block-1", "[]", false, "", false)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -519,9 +519,135 @@ func TestRunBlockAppend_EmptyStdin(t *testing.T) {
 	t.Parallel()
 	client := api.NewClient("token")
 	var buf bytes.Buffer
-	err := runBlockAppend(context.Background(), client, &buf, strings.NewReader(""), "json", "block-1", "[]", false)
+	err := runBlockAppend(context.Background(), client, &buf, strings.NewReader(""), "json", "block-1", "[]", false, "", false)
 	if err == nil {
 		t.Fatal("expected error for empty stdin, got nil")
+	}
+}
+
+func TestRunBlockAppend_AfterAndObjectForm(t *testing.T) {
+	t.Parallel()
+
+	const childArrayJSON = `[{"object":"block","type":"paragraph","paragraph":{"rich_text":[]}}]`
+
+	cases := []struct {
+		name             string
+		childrenJSON     string
+		childrenSet      bool
+		afterFlag        string
+		afterFlagSet     bool
+		wantHTTPCall     bool
+		wantAfter        string
+		wantAfterPresent bool
+		wantErrSubstr    string
+	}{
+		{
+			name:             "after_flag_with_array_children",
+			childrenJSON:     childArrayJSON,
+			childrenSet:      true,
+			afterFlag:        "block-xyz",
+			afterFlagSet:     true,
+			wantHTTPCall:     true,
+			wantAfter:        "block-xyz",
+			wantAfterPresent: true,
+		},
+		{
+			name:             "object_form_with_after",
+			childrenJSON:     `{"children":[{"object":"block","type":"paragraph","paragraph":{"rich_text":[]}}],"after":"anchor-1"}`,
+			childrenSet:      true,
+			wantHTTPCall:     true,
+			wantAfter:        "anchor-1",
+			wantAfterPresent: true,
+		},
+		{
+			name:             "object_form_without_after",
+			childrenJSON:     `{"children":[{"object":"block","type":"paragraph","paragraph":{"rich_text":[]}}]}`,
+			childrenSet:      true,
+			wantHTTPCall:     true,
+			wantAfterPresent: false,
+		},
+		{
+			name:          "conflict_after_flag_and_object_after",
+			childrenJSON:  `{"children":[{"object":"block","type":"paragraph","paragraph":{"rich_text":[]}}],"after":"anchor-1"}`,
+			childrenSet:   true,
+			afterFlag:     "block-xyz",
+			afterFlagSet:  true,
+			wantErrSubstr: "conflicting after",
+		},
+		{
+			name:          "object_missing_children_key",
+			childrenJSON:  `{"after":"anchor-1"}`,
+			childrenSet:   true,
+			wantErrSubstr: "object form requires \"children\" key",
+		},
+		{
+			name:          "object_unknown_key",
+			childrenJSON:  `{"children":[{"object":"block","type":"paragraph","paragraph":{"rich_text":[]}}],"parent":{"page_id":"abc"}}`,
+			childrenSet:   true,
+			wantErrSubstr: "unknown key",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			var capturedBody []byte
+			var httpCalls int
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				httpCalls++
+				if r.URL.Path != "/v1/blocks/block-1/children" || r.Method != http.MethodPatch {
+					http.Error(w, "bad request", http.StatusBadRequest)
+					return
+				}
+				capturedBody, _ = io.ReadAll(r.Body)
+				w.Header().Set("Content-Type", "application/json")
+				_, _ = w.Write([]byte(testAppendResponseJSON))
+			}))
+			defer srv.Close()
+
+			client := api.NewClient("token", api.WithBaseURL(srv.URL), api.WithHTTPClient(srv.Client()))
+			var buf bytes.Buffer
+			err := runBlockAppend(context.Background(), client, &buf, strings.NewReader(""), "json", "block-1", tc.childrenJSON, tc.childrenSet, tc.afterFlag, tc.afterFlagSet)
+
+			if tc.wantErrSubstr != "" {
+				if err == nil {
+					t.Fatalf("expected error containing %q, got nil", tc.wantErrSubstr)
+				}
+				if !strings.Contains(err.Error(), tc.wantErrSubstr) {
+					t.Fatalf("error %q does not contain %q", err.Error(), tc.wantErrSubstr)
+				}
+				if httpCalls != 0 {
+					t.Errorf("expected no HTTP call on validation error, got %d", httpCalls)
+				}
+				return
+			}
+
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if !tc.wantHTTPCall {
+				return
+			}
+			if httpCalls != 1 {
+				t.Fatalf("expected 1 HTTP call, got %d", httpCalls)
+			}
+
+			var bodyMap map[string]any
+			if err := json.Unmarshal(capturedBody, &bodyMap); err != nil {
+				t.Fatalf("request body is not valid JSON: %v", err)
+			}
+			if _, ok := bodyMap["children"]; !ok {
+				t.Errorf("body missing \"children\" key, got: %s", capturedBody)
+			}
+			gotAfter, hasAfter := bodyMap["after"]
+			if hasAfter != tc.wantAfterPresent {
+				t.Errorf("body \"after\" present = %v, want %v (body: %s)", hasAfter, tc.wantAfterPresent, capturedBody)
+			}
+			if tc.wantAfterPresent && gotAfter != tc.wantAfter {
+				t.Errorf("body \"after\" = %v, want %q", gotAfter, tc.wantAfter)
+			}
+		})
 	}
 }
 
@@ -536,7 +662,7 @@ func TestRunBlockAppend_NotFound(t *testing.T) {
 	childrenJSON := `[{"object":"block","type":"paragraph","paragraph":{"rich_text":[]}}]`
 	client := api.NewClient("token", api.WithBaseURL(srv.URL), api.WithHTTPClient(srv.Client()))
 	var buf bytes.Buffer
-	err := runBlockAppend(context.Background(), client, &buf, strings.NewReader(""), "json", "bad-id", childrenJSON, true)
+	err := runBlockAppend(context.Background(), client, &buf, strings.NewReader(""), "json", "bad-id", childrenJSON, true, "", false)
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}
@@ -661,7 +787,7 @@ func TestRunBlockAppend_ErrorsOnTTYStdin(t *testing.T) {
 
 	client := api.NewClient("token")
 	var buf bytes.Buffer
-	err = runBlockAppend(context.Background(), client, &buf, f, "json", "block-1", "[]", false)
+	err = runBlockAppend(context.Background(), client, &buf, f, "json", "block-1", "[]", false, "", false)
 	if err == nil {
 		t.Fatal("expected error for TTY stdin, got nil")
 	}
@@ -680,7 +806,7 @@ func TestRunBlockAppend_ErrorsOnEmptyStdin(t *testing.T) {
 
 	client := api.NewClient("token")
 	var buf bytes.Buffer
-	err = runBlockAppend(context.Background(), client, &buf, f, "json", "block-1", "[]", false)
+	err = runBlockAppend(context.Background(), client, &buf, f, "json", "block-1", "[]", false, "", false)
 	if err == nil {
 		t.Fatal("expected error for empty stdin, got nil")
 	}

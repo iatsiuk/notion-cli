@@ -156,7 +156,7 @@ func TestRunPageCreate_OutputsPage(t *testing.T) {
 
 	client := api.NewClient("token", api.WithBaseURL(srv.URL), api.WithHTTPClient(srv.Client()))
 	var buf bytes.Buffer
-	err := runPageCreate(context.Background(), client, &buf, "json", "page_id:parent-1", `{}`)
+	err := runPageCreate(context.Background(), client, &buf, "json", "page_id:parent-1", `{}`, `[]`)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -169,7 +169,7 @@ func TestRunPageCreate_InvalidParentFormat(t *testing.T) {
 	t.Parallel()
 	client := api.NewClient("token")
 	var buf bytes.Buffer
-	err := runPageCreate(context.Background(), client, &buf, "json", "invalid", `{}`)
+	err := runPageCreate(context.Background(), client, &buf, "json", "invalid", `{}`, `[]`)
 	if err == nil {
 		t.Fatal("expected error for invalid parent format, got nil")
 	}
@@ -179,7 +179,7 @@ func TestRunPageCreate_InvalidPropertiesJSON(t *testing.T) {
 	t.Parallel()
 	client := api.NewClient("token")
 	var buf bytes.Buffer
-	err := runPageCreate(context.Background(), client, &buf, "json", "page_id:parent-1", `not-json`)
+	err := runPageCreate(context.Background(), client, &buf, "json", "page_id:parent-1", `not-json`, `[]`)
 	if err == nil {
 		t.Fatal("expected error for invalid JSON, got nil")
 	}
@@ -202,7 +202,7 @@ func TestRunPageCreate_WithDatabaseParent(t *testing.T) {
 
 	client := api.NewClient("token", api.WithBaseURL(srv.URL), api.WithHTTPClient(srv.Client()))
 	var buf bytes.Buffer
-	err := runPageCreate(context.Background(), client, &buf, "json", "database_id:db-1", `{}`)
+	err := runPageCreate(context.Background(), client, &buf, "json", "database_id:db-1", `{}`, `[]`)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -221,7 +221,7 @@ func TestRunPageCreate_APIError(t *testing.T) {
 
 	client := api.NewClient("token", api.WithBaseURL(srv.URL), api.WithHTTPClient(srv.Client()))
 	var buf bytes.Buffer
-	err := runPageCreate(context.Background(), client, &buf, "json", "page_id:parent-1", `{}`)
+	err := runPageCreate(context.Background(), client, &buf, "json", "page_id:parent-1", `{}`, `[]`)
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}
@@ -232,6 +232,95 @@ func TestRunPageCreate_APIError(t *testing.T) {
 	}
 	if cliErr.Code != ExitAPI {
 		t.Errorf("expected exit code %d, got %d", ExitAPI, cliErr.Code)
+	}
+}
+
+func TestRunPageCreate_WithChildren(t *testing.T) {
+	t.Parallel()
+	var gotBody map[string]any
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_ = json.NewDecoder(r.Body).Decode(&gotBody)
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(testPageJSON))
+	}))
+	defer srv.Close()
+
+	client := api.NewClient("token", api.WithBaseURL(srv.URL), api.WithHTTPClient(srv.Client()))
+	var buf bytes.Buffer
+	childrenJSON := `[{"object":"block","type":"paragraph","paragraph":{"rich_text":[{"type":"text","text":{"content":"hi"}}]}}]`
+	err := runPageCreate(context.Background(), client, &buf, "json", "page_id:parent-1", `{}`, childrenJSON)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	children, ok := gotBody["children"].([]any)
+	if !ok {
+		t.Fatalf("children missing or wrong type in request body: %v", gotBody["children"])
+	}
+	if len(children) != 1 {
+		t.Fatalf("len(children) = %d, want 1", len(children))
+	}
+	first, ok := children[0].(map[string]any)
+	if !ok {
+		t.Fatalf("children[0] not an object: %T", children[0])
+	}
+	if first["type"] != "paragraph" {
+		t.Errorf("children[0].type = %v, want %q", first["type"], "paragraph")
+	}
+}
+
+func TestRunPageCreate_EmptyChildrenOmitsField(t *testing.T) {
+	t.Parallel()
+	var gotBody map[string]any
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_ = json.NewDecoder(r.Body).Decode(&gotBody)
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(testPageJSON))
+	}))
+	defer srv.Close()
+
+	client := api.NewClient("token", api.WithBaseURL(srv.URL), api.WithHTTPClient(srv.Client()))
+	var buf bytes.Buffer
+	err := runPageCreate(context.Background(), client, &buf, "json", "page_id:parent-1", `{}`, `[]`)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if _, present := gotBody["children"]; present {
+		t.Errorf("children should be absent in body when --children='[]', got: %v", gotBody["children"])
+	}
+}
+
+func TestPageCreateCmd_ChildrenFlagDefaultIsEmptyArray(t *testing.T) {
+	t.Parallel()
+	cmd := NewPageCreateCmd()
+	flag := cmd.Flags().Lookup("children")
+	if flag == nil {
+		t.Fatal("--children flag not registered")
+	}
+	if flag.DefValue != "[]" {
+		t.Errorf("--children default = %q, want %q", flag.DefValue, "[]")
+	}
+}
+
+func TestRunPageCreate_ChildrenObjectFormRejected(t *testing.T) {
+	t.Parallel()
+	client := api.NewClient("token")
+	var buf bytes.Buffer
+	err := runPageCreate(context.Background(), client, &buf, "json", "page_id:parent-1", `{}`, `{"children":[]}`)
+	if err == nil {
+		t.Fatal("expected error for object form, got nil")
+	}
+	if !strings.Contains(err.Error(), "JSON array") {
+		t.Errorf("expected error mentioning JSON array, got: %v", err)
+	}
+}
+
+func TestRunPageCreate_ChildrenInvalidJSON(t *testing.T) {
+	t.Parallel()
+	client := api.NewClient("token")
+	var buf bytes.Buffer
+	err := runPageCreate(context.Background(), client, &buf, "json", "page_id:parent-1", `{}`, `not-json`)
+	if err == nil {
+		t.Fatal("expected error for invalid JSON, got nil")
 	}
 }
 
