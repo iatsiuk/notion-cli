@@ -119,11 +119,13 @@ notion-cli page create [flags]
 Flags:
     --parent string       Parent: type:id (e.g. database_id:abc or page_id:abc) (required)
     --properties string   Properties as JSON object (default "{}")
+    --children string     Child blocks as JSON array (default: empty, no children key sent)
 ```
 
 ```
 notion-cli page create --parent database_id:abc123 --properties '{"Name":{"title":[{"text":{"content":"New Page"}}]}}'
 notion-cli page create --parent page_id:abc123
+notion-cli page create --parent page_id:abc123 --children '[{"object":"block","type":"paragraph","paragraph":{"rich_text":[{"text":{"content":"Hello"}}]}}]'
 ```
 
 ### page update
@@ -320,11 +322,13 @@ Append child blocks to a block. Children can be provided via the `--children` fl
 notion-cli block append <block_id> [flags]
 
 Flags:
-    --children string   Child blocks as non-empty JSON array
+    --children string   Child blocks as JSON array, or full request body as JSON object {"children":[...], "after":"..."}
+    --after string      Insert new children after this block ID (default: append to end)
 ```
 
 ```
 notion-cli block append abc123 --children '[{"object":"block","type":"paragraph","paragraph":{"rich_text":[{"text":{"content":"New paragraph"}}]}}]'
+notion-cli block append abc123 --children '[{"object":"block","type":"paragraph","paragraph":{"rich_text":[{"text":{"content":"New paragraph"}}]}}]' --after existing-block-id
 echo '[{"object":"block","type":"paragraph","paragraph":{"rich_text":[{"text":{"content":"New paragraph"}}]}}]' | notion-cli block append abc123
 ```
 
