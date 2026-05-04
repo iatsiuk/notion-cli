@@ -102,44 +102,47 @@ func runBlockChildren(ctx context.Context, client *api.Client, w io.Writer, form
 
 // NewBlockAppendCmd returns the "block append" cobra subcommand.
 func NewBlockAppendCmd() *cobra.Command {
-	var childrenFlag string
+	var childrenFlag, afterFlag string
 
 	cmd := &cobra.Command{
 		Use:   "append <block_id>",
 		Short: "Append child blocks to a Notion block",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return runBlockAppend(cmd.Context(), newClientFromCfg(), cmd.OutOrStdout(), cmd.InOrStdin(), cfg.Format, args[0], childrenFlag, cmd.Flags().Changed("children"))
+			return runBlockAppend(cmd.Context(), newClientFromCfg(), cmd.OutOrStdout(), cmd.InOrStdin(), cfg.Format, args[0], childrenFlag, cmd.Flags().Changed("children"), afterFlag, cmd.Flags().Changed("after"))
 		},
 	}
-	cmd.Flags().StringVar(&childrenFlag, "children", "[]", "Child blocks as JSON array")
+	cmd.Flags().StringVar(&childrenFlag, "children", "[]", "Child blocks as JSON array, or full request body as JSON object {\"children\":[...], \"after\":\"...\"}")
+	cmd.Flags().StringVar(&afterFlag, "after", "", "Insert new children after this block ID (default: append to end)")
 	return cmd
 }
 
-func runBlockAppend(ctx context.Context, client *api.Client, w io.Writer, stdin io.Reader, format, blockID, childrenJSON string, childrenFlagSet bool) error {
+func runBlockAppend(ctx context.Context, client *api.Client, w io.Writer, stdin io.Reader, format, blockID, childrenJSON string, childrenFlagSet bool, afterFlag string, afterFlagSet bool) error {
 	if !childrenFlagSet {
-		if isTTY(stdin) {
-			return fmt.Errorf("stdin is a terminal: provide --children flag or pipe JSON array via stdin")
-		}
-		data, err := io.ReadAll(stdin)
+		fromStdin, err := readChildrenFromStdin(stdin)
 		if err != nil {
-			return fmt.Errorf("reading stdin: %w", err)
+			return err
 		}
-		childrenJSON = strings.TrimSpace(string(data))
-		if childrenJSON == "" {
-			return fmt.Errorf("provide --children flag or pipe JSON array via stdin")
-		}
+		childrenJSON = fromStdin
 	}
 
-	var children []map[string]any
-	if err := json.Unmarshal([]byte(childrenJSON), &children); err != nil {
-		return fmt.Errorf("--children: %w", err)
+	children, afterFromJSON, hadAfterKey, err := parseAppendChildren(childrenJSON)
+	if err != nil {
+		return err
+	}
+	if afterFlagSet && hadAfterKey {
+		return fmt.Errorf("conflicting after: provided via --after and inside --children JSON object")
 	}
 	if len(children) == 0 {
 		return fmt.Errorf("children must be a non-empty JSON array")
 	}
 
-	blocks, err := client.AppendBlockChildren(ctx, blockID, children)
+	after := afterFromJSON
+	if afterFlagSet {
+		after = afterFlag
+	}
+
+	blocks, err := client.AppendBlockChildren(ctx, blockID, children, after)
 	if err != nil {
 		return mapAPIError(err)
 	}
@@ -149,6 +152,88 @@ func runBlockAppend(ctx context.Context, client *api.Client, w io.Writer, stdin 
 		return fmt.Errorf("output format: %w", err)
 	}
 	return f.Format(w, blocks)
+}
+
+func readChildrenFromStdin(stdin io.Reader) (string, error) {
+	if isTTY(stdin) {
+		return "", fmt.Errorf("stdin is a terminal: provide --children flag or pipe JSON array via stdin")
+	}
+	data, err := io.ReadAll(stdin)
+	if err != nil {
+		return "", fmt.Errorf("reading stdin: %w", err)
+	}
+	trimmed := strings.TrimSpace(string(data))
+	if trimmed == "" {
+		return "", fmt.Errorf("provide --children flag or pipe JSON array via stdin")
+	}
+	return trimmed, nil
+}
+
+func validateChildrenElements(children []map[string]any) error {
+	for i, c := range children {
+		if c == nil {
+			return fmt.Errorf("--children: element %d is not a JSON object", i)
+		}
+	}
+	return nil
+}
+
+// parseAppendChildren accepts either a JSON array of child block objects or a
+// full request body object of the form {"children":[...], "after":"..."}.
+// hadAfterKey reflects whether the "after" key was present in the object form,
+// independently of whether its value is the empty string.
+func parseAppendChildren(raw string) (children []map[string]any, afterFromJSON string, hadAfterKey bool, err error) {
+	trimmed := strings.TrimSpace(raw)
+	if trimmed == "" {
+		return nil, "", false, fmt.Errorf("--children: empty input")
+	}
+
+	var asObject map[string]any
+	if objErr := json.Unmarshal([]byte(trimmed), &asObject); objErr == nil {
+		return parseAppendChildrenObject(asObject)
+	}
+
+	if arrErr := json.Unmarshal([]byte(trimmed), &children); arrErr != nil {
+		return nil, "", false, fmt.Errorf("--children: %w", arrErr)
+	}
+	if err := validateChildrenElements(children); err != nil {
+		return nil, "", false, err
+	}
+	return children, "", false, nil
+}
+
+func parseAppendChildrenObject(obj map[string]any) (children []map[string]any, afterFromJSON string, hadAfterKey bool, err error) {
+	for k := range obj {
+		if k != "children" && k != "after" {
+			return nil, "", false, fmt.Errorf("--children: unknown key %q in object form (allowed: children, after)", k)
+		}
+	}
+
+	rawChildren, ok := obj["children"]
+	if !ok {
+		return nil, "", false, fmt.Errorf("--children: object form requires \"children\" key")
+	}
+
+	encoded, err := json.Marshal(rawChildren)
+	if err != nil {
+		return nil, "", false, fmt.Errorf("--children: %w", err)
+	}
+	if err := json.Unmarshal(encoded, &children); err != nil {
+		return nil, "", false, fmt.Errorf("--children: %w", err)
+	}
+	if err := validateChildrenElements(children); err != nil {
+		return nil, "", false, err
+	}
+
+	afterValue, hadAfterKey := obj["after"]
+	if hadAfterKey {
+		s, ok := afterValue.(string)
+		if !ok {
+			return nil, "", false, fmt.Errorf("--children: \"after\" must be a string")
+		}
+		afterFromJSON = s
+	}
+	return children, afterFromJSON, hadAfterKey, nil
 }
 
 // NewBlockDeleteCmd returns the "block delete" cobra subcommand.

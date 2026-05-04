@@ -58,18 +58,19 @@ func runPageGet(ctx context.Context, client *api.Client, w io.Writer, format, pa
 
 // NewPageCreateCmd returns the "page create" cobra subcommand.
 func NewPageCreateCmd() *cobra.Command {
-	var parentFlag, propertiesFlag string
+	var parentFlag, propertiesFlag, childrenFlag string
 
 	cmd := &cobra.Command{
 		Use:   "create",
 		Short: "Create a new Notion page",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return runPageCreate(cmd.Context(), newClientFromCfg(), cmd.OutOrStdout(), cfg.Format, parentFlag, propertiesFlag)
+			return runPageCreate(cmd.Context(), newClientFromCfg(), cmd.OutOrStdout(), cfg.Format, parentFlag, propertiesFlag, childrenFlag)
 		},
 	}
 	cmd.Flags().StringVar(&parentFlag, "parent", "", "Parent: type:id (e.g. database_id:abc or page_id:abc)")
 	cmd.Flags().StringVar(&propertiesFlag, "properties", "{}", "Properties as JSON object")
+	cmd.Flags().StringVar(&childrenFlag, "children", "[]", "Child blocks as JSON array")
 	_ = cmd.MarkFlagRequired("parent")
 	return cmd
 }
@@ -252,7 +253,7 @@ func runPageMarkdown(ctx context.Context, client *api.Client, w io.Writer, pageI
 	return err
 }
 
-func runPageCreate(ctx context.Context, client *api.Client, w io.Writer, format, parentStr, propertiesJSON string) error {
+func runPageCreate(ctx context.Context, client *api.Client, w io.Writer, format, parentStr, propertiesJSON, childrenJSON string) error {
 	parent, err := parseParent(parentStr)
 	if err != nil {
 		return fmt.Errorf("--parent: %w", err)
@@ -266,9 +267,20 @@ func runPageCreate(ctx context.Context, client *api.Client, w io.Writer, format,
 		return fmt.Errorf("--properties: must be a JSON object, got null")
 	}
 
+	children, err := parseCreatePageChildren(childrenJSON)
+	if err != nil {
+		return err
+	}
+
 	req := &api.CreatePageRequest{
 		Parent:     parent,
 		Properties: props,
+	}
+	if len(children) > 0 {
+		req.Children = make([]any, len(children))
+		for i, c := range children {
+			req.Children[i] = c
+		}
 	}
 	page, err := client.CreatePage(ctx, req)
 	if err != nil {
@@ -280,4 +292,22 @@ func runPageCreate(ctx context.Context, client *api.Client, w io.Writer, format,
 		return fmt.Errorf("output format: %w", err)
 	}
 	return f.Format(w, page)
+}
+
+// parseCreatePageChildren strictly parses a JSON array of child block objects.
+// Object form is intentionally rejected to keep the UX consistent with --parent
+// and --properties.
+func parseCreatePageChildren(raw string) ([]map[string]any, error) {
+	trimmed := strings.TrimSpace(raw)
+	if !strings.HasPrefix(trimmed, "[") {
+		return nil, fmt.Errorf("--children: must be a JSON array")
+	}
+	var children []map[string]any
+	if err := json.Unmarshal([]byte(trimmed), &children); err != nil {
+		return nil, fmt.Errorf("--children: %w", err)
+	}
+	if err := validateChildrenElements(children); err != nil {
+		return nil, err
+	}
+	return children, nil
 }

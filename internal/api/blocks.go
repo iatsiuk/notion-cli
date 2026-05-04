@@ -113,11 +113,15 @@ func (c *Client) ListBlockChildren(ctx context.Context, blockID string) ([]Block
 }
 
 // AppendBlockChildren appends child blocks to a block and returns the created blocks.
-func (c *Client) AppendBlockChildren(ctx context.Context, blockID string, children []map[string]any) ([]Block, error) {
+// If after is non-empty, new blocks are inserted after the block with that ID.
+func (c *Client) AppendBlockChildren(ctx context.Context, blockID string, children []map[string]any, after string) ([]Block, error) {
 	if len(children) == 0 {
 		return nil, fmt.Errorf("children must be non-empty")
 	}
 	body := map[string]any{"children": children}
+	if after != "" {
+		body["after"] = after
+	}
 	raw, err := c.Patch(ctx, "/v1/blocks/"+url.PathEscape(blockID)+"/children", body)
 	if err != nil {
 		return nil, err
